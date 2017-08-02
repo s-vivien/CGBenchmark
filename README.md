@@ -15,7 +15,9 @@ The result is a standalone jar.
 java -jar CGBenchmark.jar -c \<path to your json configuration\>
 
 ### Configure:
-Before you can run the tool, you must configure your CG account, code list and some other stuff.
+Before you can run the tool, you must configure your CG account, code list and some other stuff.  
+Fortunately, the CG cookie has a very long lifetime (several monthes) so you'll only have to do this once.
+As for the `agentId` of the enemy you want to benchmark your code against, you can grab it on [CGStats](http://cgstats.magusgeek.com) by searching the opponent's nickname in the leaderboard; its agentId will be displayed at the top of the results.
 
 The configuration uses the JSON format, and must contains the following items :
 ```javascript
@@ -71,7 +73,8 @@ The configuration uses the JSON format, and must contains the following items :
       "language": "C++",
       "enemyAgentId": "1408472",
       "enemyName": "Agade"
-    }
+    },
+    [...]
   ]
 }
 ```
