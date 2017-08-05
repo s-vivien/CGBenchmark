@@ -8,6 +8,6 @@ public class LoginResponse {
     public LoginResponseSuccess success;
 
     public class LoginResponseSuccess {
-        public int userId;
+        public Integer userId;
     }
 }

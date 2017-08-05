@@ -141,6 +141,10 @@ public class CGBenchmark {
             throw new IllegalStateException("Login request failed");
         }
 
+        if (loginResponse.body().success == null || loginResponse.body().success.userId == null) {
+            throw new IllegalStateException("Login failed, please check login/pwd in configuration");
+        }
+
         // Selecting appropriate cookie; we keep the one that expires the later
         Optional<Cookie> optCookie = loginResponse.headers().values(Constants.SET_COOKIE).stream()
                 .map(c -> Cookie.parse(HttpUrl.parse(Constants.CG_HOST), c))
@@ -209,7 +213,7 @@ public class CGBenchmark {
                 throw new IllegalArgumentException("You must provide account name");
             }
             if (accountCfg.getAccountLogin() == null || accountCfg.getAccountPassword() == null) {
-                throw new IllegalArgumentException("You must provide account getSessionHandle/pwd");
+                throw new IllegalArgumentException("You must provide account login/pwd");
             }
         }
 

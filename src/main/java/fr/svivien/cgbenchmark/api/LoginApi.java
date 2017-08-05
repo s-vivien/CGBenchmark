@@ -13,7 +13,7 @@ public interface LoginApi {
     @Headers({
             "Host: www.codingame.com",
             "Connection: keep-alive",
-            "Content-Length: 256",
+            "Content-Length: 64",
             "Accept: application/json, text/plain, */*",
             "Origin: " + Constants.CG_HOST,
             "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.97 Safari/537.36",
