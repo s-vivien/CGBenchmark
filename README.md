@@ -1,23 +1,27 @@
 # CG Benchmark
 
-Like [CGSpunk](https://github.com/danBhentschel/CGSpunk), except it's made in Java and you can queue several codes to run big fat batches of games and compare results easily.
+Like [CGSpunk](https://github.com/danBhentschel/CGSpunk), except it's made in Java  
+... and you don't need to have your browser open  
+... and you can queue several codes to run big fat batches of games and compare results easily.
 
-
-Allows you to queue batches of matches on any multiplayer/contest game of CodinGame.  
+### What it does:
+Allows you to queue batches of matches on any multiplayer game of CodinGame.  
+Simulates PLAY in the IDE and gathers results.  
 You can add an unlimited number of source code in the configuration file, they'll be benchmarked one by one.  
-A .txt report file with global winrate and replay links will be produced for each of them.
+Supports multi-account; matches are distributed between the configured accounts to fasten the benchmark.  
+A .txt report file with global winrate and replay links will be produced for each of them.  
+Reports for a single code looks like [this](https://pastebin.com/PSJphjsi)
 
 ### Build:
-The tool requires JDK 1.8, and is built with Gradle, using the task `fatJar`.
+The tool requires JDK 1.8, and is built with Gradle, using the task `fatJar`.  
 The result is a standalone jar.
 
 ### Run:
-java -jar CGBenchmark.jar -c \<path to your json configuration\>
+`java -jar CGBenchmark.jar -c <path_to_your_json_configuration_file>`
 
 ### Configure:
 Before you can run the tool, you must configure your CG account, code list and some other stuff.  
-Fortunately, the CG cookie has a very long lifetime (several monthes) so you'll only have to do this once.
-As for the `agentId` of the enemy you want to benchmark your code against, you can grab it on [CGStats](http://cgstats.magusgeek.com) by searching the opponent's nickname in the leaderboard; its agentId will be displayed at the top of the results.
+For the `agentId` of the enemy you want to benchmark your code against, you can grab it on [CGStats](http://cgstats.magusgeek.com) by searching the opponent's nickname in the leaderboard; its agentId will be displayed at the top of the results.
 
 The configuration uses the JSON format, and must contains the following items :
 ```javascript
@@ -27,16 +31,19 @@ The configuration uses the JSON format, and must contains the following items :
     {
       // Name of your account
       "accountName": "Neumann",
-      // Cookie of your session (you can find it in the headers of any PLAY request in the CG ide)
-      "accountCookie": "...",
-      // Multiplayer/contest ide code (you can find it in the body of any PLAY request in the CG ide, as the first payload element)
-      "accountIde": "8xx687xx58xx63xx0c873exx82527xxx40cxxx4"
+      // Login of your account
+      "accountLogin": "email@provider.com",
+      // Password of your account
+      "accountPassword": "123password",
     }
   ],
 
   // If enabled, seed list will be ignored and every match will be played against a random seed
   "randomSeed": "false",
 
+  // The name of the multiplayer game as it appears at the end of the url of your IDE
+  "multiName": "wondev-woman",
+  
   // List of seeds to play
   "seedList": [
     "mapIndex=2\nseed=926288117",
@@ -78,13 +85,6 @@ The configuration uses the JSON format, and must contains the following items :
   ]
 }
 ```
-
-You can grab the cookie and ide-code by opening your IDE on the game you want to benchmark, make a PLAY and take the information as shown on below screenshot :
-
-![configuration](http://i.imgur.com/4D7ywqc.png)
-
-
-Reports for a single code looks like [this](https://pastebin.com/5mrymURx)
 
 ### Things that would be cool to have:
 

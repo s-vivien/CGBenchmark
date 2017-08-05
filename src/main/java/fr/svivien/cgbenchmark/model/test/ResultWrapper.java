@@ -23,7 +23,7 @@ public class ResultWrapper {
     private List<TestOutput> results = Collections.synchronizedList(new ArrayList<>());
 
     public ResultWrapper(CodeConfiguration codeCfg) {
-        reportBuilder.append("Testing " + codeCfg.getSourcePath() + " against " + codeCfg.getEnemyAgentId() + System.lineSeparator() + System.lineSeparator());
+        reportBuilder.append("Testing " + codeCfg.getSourcePath() + " against " + codeCfg.getEnemyAgentId() + "/" + codeCfg.getEnemyName() + System.lineSeparator() + System.lineSeparator());
         reportBuilder.append("Start : " + (new Date()) + System.lineSeparator());
     }
 

@@ -1,4 +1,4 @@
-package fr.svivien.cgbenchmark.model.request;
+package fr.svivien.cgbenchmark.model.request.play;
 
 import java.util.ArrayList;
 import java.util.List;

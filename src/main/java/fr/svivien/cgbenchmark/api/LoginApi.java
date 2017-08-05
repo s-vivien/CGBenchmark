@@ -1,25 +1,26 @@
 package fr.svivien.cgbenchmark.api;
 
-import fr.svivien.cgbenchmark.model.request.PlayRequest;
-import fr.svivien.cgbenchmark.model.request.PlayResponse;
+import fr.svivien.cgbenchmark.Constants;
+import fr.svivien.cgbenchmark.model.request.login.LoginRequest;
+import fr.svivien.cgbenchmark.model.request.login.LoginResponse;
 import retrofit2.Call;
 import retrofit2.http.Body;
-import retrofit2.http.Header;
 import retrofit2.http.Headers;
 import retrofit2.http.POST;
 
-public interface CGPlay {
-    @POST("/services/TestSessionRemoteService/play")
+public interface LoginApi {
+    @POST("/services/CodingamerRemoteService/loginSiteV2")
     @Headers({
             "Host: www.codingame.com",
             "Connection: keep-alive",
-            "Content-Length: 1152",
+            "Content-Length: 256",
             "Accept: application/json, text/plain, */*",
-            "Origin: https://www.codingame.com",
+            "Origin: " + Constants.CG_HOST,
             "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.97 Safari/537.36",
             "Content-Type: application/json;charset=UTF-8",
             "Accept-Encoding: deflate",
+            "Referer: " + Constants.CG_HOST + "/start",
             "Accept-Language: fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4",
     })
-    Call<PlayResponse> play(@Body PlayRequest body, @Header("Referer") String referer, @Header("Cookie") String userCookie);
+    Call<LoginResponse> login(@Body LoginRequest body);
 }

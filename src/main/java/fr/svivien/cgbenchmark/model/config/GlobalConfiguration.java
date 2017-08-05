@@ -10,6 +10,11 @@ public class GlobalConfiguration {
     private Boolean randomSeed;
     private Integer playerPosition;
     private List<CodeConfiguration> codeConfigurationList;
+    private String multiName;
+
+    public String getMultiName() {
+        return multiName;
+    }
 
     public List<AccountConfiguration> getAccountConfigurationList() {
         return accountConfigurationList;

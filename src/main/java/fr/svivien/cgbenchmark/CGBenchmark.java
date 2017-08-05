@@ -1,15 +1,29 @@
 package fr.svivien.cgbenchmark;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
+import fr.svivien.cgbenchmark.api.LoginApi;
+import fr.svivien.cgbenchmark.api.SessionApi;
 import fr.svivien.cgbenchmark.model.config.AccountConfiguration;
 import fr.svivien.cgbenchmark.model.config.CodeConfiguration;
 import fr.svivien.cgbenchmark.model.config.GlobalConfiguration;
+import fr.svivien.cgbenchmark.model.request.login.LoginRequest;
+import fr.svivien.cgbenchmark.model.request.login.LoginResponse;
+import fr.svivien.cgbenchmark.model.request.session.SessionRequest;
+import fr.svivien.cgbenchmark.model.request.session.SessionResponse;
 import fr.svivien.cgbenchmark.model.test.ResultWrapper;
 import fr.svivien.cgbenchmark.producerconsumer.Broker;
 import fr.svivien.cgbenchmark.producerconsumer.Consumer;
+import okhttp3.Cookie;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import retrofit2.Call;
+import retrofit2.GsonConverterFactory;
+import retrofit2.Retrofit;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -19,6 +33,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -36,7 +51,7 @@ public class CGBenchmark {
         try {
             globalConfiguration = parseConfigurationFile(cfgFilePath);
             checkConfiguration(globalConfiguration);
-        } catch (UnsupportedEncodingException | FileNotFoundException e) {
+        } catch (UnsupportedEncodingException | FileNotFoundException | JsonIOException | JsonSyntaxException e) {
             LOG.fatal("Failed to parse configuration file", e);
             System.exit(1);
         } catch (IllegalArgumentException e) {
@@ -47,6 +62,12 @@ public class CGBenchmark {
         // Creating account consumers
         LOG.info("Registering " + globalConfiguration.getAccountConfigurationList().size() + " account(s)");
         for (AccountConfiguration accountCfg : globalConfiguration.getAccountConfigurationList()) {
+            try {
+                retrieveAccountCookieAndSession(accountCfg, globalConfiguration.getMultiName());
+            } catch (IllegalStateException e) {
+                LOG.fatal("Error while retrieving account cookie and session", e);
+                System.exit(1);
+            }
             accountConsumerList.add(new Consumer(accountCfg.getAccountName(), testBroker, accountCfg.getAccountCookie(), accountCfg.getAccountIde(), globalConfiguration.getRequestCooldown()));
             LOG.info("Account " + accountCfg.getAccountName() + " successfully registered");
         }
@@ -64,16 +85,16 @@ public class CGBenchmark {
             // Brand new resultWrapper for this test
             ResultWrapper resultWrapper = new ResultWrapper(codeCfg);
 
-            // Adding consumers in the thread-pool and wiring fresh new resultWrapper
-            for (Consumer consumer : accountConsumerList) {
-                consumer.setResultWrapper(resultWrapper);
-                threadPool.execute(consumer);
-            }
-
             try {
                 createTests(codeCfg);
 
                 LOG.info("Launching " + testBroker.getTestSize() + " tests " + codeName + " against " + codeCfg.getEnemyAgentId() + "/" + codeCfg.getEnemyName() + " ...");
+
+                // Adding consumers in the thread-pool and wiring fresh new resultWrapper
+                for (Consumer consumer : accountConsumerList) {
+                    consumer.setResultWrapper(resultWrapper);
+                    threadPool.execute(consumer);
+                }
 
                 // Unleash the executor
                 threadPool.shutdown();
@@ -100,6 +121,52 @@ public class CGBenchmark {
         }
 
         LOG.info("No more tests. Ending.");
+    }
+
+    private void retrieveAccountCookieAndSession(AccountConfiguration accountCfg, String multiName) {
+        LOG.info("Retrieving cookie and session for account " + accountCfg.getAccountName());
+
+        OkHttpClient client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
+        Retrofit retrofit = new Retrofit.Builder().client(client).baseUrl(Constants.CG_HOST).addConverterFactory(GsonConverterFactory.create()).build();
+        LoginApi loginApi = retrofit.create(LoginApi.class);
+
+        LoginRequest loginRequest = new LoginRequest(accountCfg.getAccountLogin(), accountCfg.getAccountPassword());
+        Call<LoginResponse> loginCall = loginApi.login(loginRequest);
+
+        // Calling getSessionHandle API
+        retrofit2.Response<LoginResponse> loginResponse;
+        try {
+            loginResponse = loginCall.execute();
+        } catch (IOException | RuntimeException e) {
+            throw new IllegalStateException("Login request failed");
+        }
+
+        // Selecting appropriate cookie; we keep the one that expires the later
+        Optional<Cookie> optCookie = loginResponse.headers().values(Constants.SET_COOKIE).stream()
+                .map(c -> Cookie.parse(HttpUrl.parse(Constants.CG_HOST), c))
+                .filter(c -> c.name().equals(Constants.REMCG))
+                .sorted((a, b) -> (int) (b.expiresAt() - a.expiresAt()))
+                .findFirst();
+
+        if (!optCookie.isPresent()) {
+            throw new IllegalStateException("Cannot find required cookie in getSessionHandle response");
+        }
+
+        // Setting the cookie in the account configuration
+        accountCfg.setAccountCookie(optCookie.get().toString());
+
+        SessionApi sessionApi = retrofit.create(SessionApi.class);
+        SessionRequest sessionRequest = new SessionRequest(loginResponse.body().success.userId, multiName);
+        Call<SessionResponse> sessionCall = sessionApi.getSessionHandle(sessionRequest, Constants.CG_HOST + "/puzzle/" + multiName, accountCfg.getAccountCookie());
+        retrofit2.Response<SessionResponse> sessionResponse;
+        try {
+            sessionResponse = sessionCall.execute();
+        } catch (IOException | RuntimeException e) {
+            throw new IllegalStateException("Session request failed");
+        }
+
+        // Setting the IDE session in the account configuration
+        accountCfg.setAccountIde(sessionResponse.body().success.handle);
     }
 
     private void createTests(CodeConfiguration codeCfg) throws IOException, InterruptedException {
@@ -133,16 +200,16 @@ public class CGBenchmark {
 
         // Checks account number
         if (globalConfiguration.getAccountConfigurationList().isEmpty()) {
-            throw new IllegalArgumentException("You must provide a valid account");
-        }
-        if (globalConfiguration.getAccountConfigurationList().size() > 1) {
-            throw new IllegalArgumentException("Although this tool supports multi-account, this feature is against CG's terms of use and can lead to a perma-ban of your account. Disable this limit at your own risk...");
+            throw new IllegalArgumentException("You must provide at least one valid account");
         }
 
         // Checks that no account field is missing
         for (AccountConfiguration accountCfg : globalConfiguration.getAccountConfigurationList()) {
-            if (accountCfg.getAccountName() == null || accountCfg.getAccountIde() == null || accountCfg.getAccountCookie() == null) {
-                throw new IllegalArgumentException("Account configuration is incomplete");
+            if (accountCfg.getAccountName() == null) {
+                throw new IllegalArgumentException("You must provide account name");
+            }
+            if (accountCfg.getAccountLogin() == null || accountCfg.getAccountPassword() == null) {
+                throw new IllegalArgumentException("You must provide account getSessionHandle/pwd");
             }
         }
 

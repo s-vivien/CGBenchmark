@@ -1,8 +1,9 @@
 package fr.svivien.cgbenchmark.producerconsumer;
 
-import fr.svivien.cgbenchmark.api.CGPlay;
-import fr.svivien.cgbenchmark.model.request.PlayRequest;
-import fr.svivien.cgbenchmark.model.request.PlayResponse;
+import fr.svivien.cgbenchmark.Constants;
+import fr.svivien.cgbenchmark.api.CGPlayApi;
+import fr.svivien.cgbenchmark.model.request.play.PlayRequest;
+import fr.svivien.cgbenchmark.model.request.play.PlayResponse;
 import fr.svivien.cgbenchmark.model.test.ResultWrapper;
 import fr.svivien.cgbenchmark.model.test.TestInput;
 import fr.svivien.cgbenchmark.model.test.TestOutput;
@@ -13,6 +14,7 @@ import retrofit2.Call;
 import retrofit2.GsonConverterFactory;
 import retrofit2.Retrofit;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -26,7 +28,7 @@ public class Consumer implements Runnable {
     private Broker broker;
     private OkHttpClient client;
     private Retrofit retrofit;
-    private CGPlay cgPlay;
+    private CGPlayApi cgPlayApi;
     private ResultWrapper resultWrapper;
     private String cookie;
     private String ide;
@@ -40,8 +42,8 @@ public class Consumer implements Runnable {
         this.name = name;
         this.broker = broker;
         this.client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
-        this.retrofit = new Retrofit.Builder().client(client).baseUrl("https://www.codingame.com/").addConverterFactory(GsonConverterFactory.create()).build();
-        this.cgPlay = retrofit.create(CGPlay.class);
+        this.retrofit = new Retrofit.Builder().client(client).baseUrl(Constants.CG_HOST).addConverterFactory(GsonConverterFactory.create()).build();
+        this.cgPlayApi = retrofit.create(CGPlayApi.class);
         this.cooldown = cooldown;
     }
 
@@ -58,7 +60,7 @@ public class Consumer implements Runnable {
 
                 for (int tries = 0; tries < 20; tries++) { /** Arbitrary value .. */
                     start = System.currentTimeMillis();
-                    TestOutput result = testCode(cgPlay, test);
+                    TestOutput result = testCode(cgPlayApi, test);
                     LOG.info(String.format(outputFormat, this.name, result.getResultString()));
                     if (!result.isError()) {
                         resultWrapper.addTestResult(result);
@@ -80,13 +82,13 @@ public class Consumer implements Runnable {
         }
     }
 
-    private TestOutput testCode(CGPlay cgPlay, TestInput test) {
+    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
         PlayRequest request = new PlayRequest(test.getCode(), test.getLang(), ide, test.getSeed(), test.getAgentId(), test.isReverse());
-        Call<PlayResponse> call = cgPlay.play(request, "https://www.codingame.com/ide/" + ide, cookie);
+        Call<PlayResponse> call = cgPlayApi.play(request, Constants.CG_HOST + "/ide/" + ide, cookie);
         try {
             PlayResponse playResponse = call.execute().body();
             return new TestOutput(test, playResponse);
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             TestOutput to = new TestOutput(test, null);
             return to;
         }
