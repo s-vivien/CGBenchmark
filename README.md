@@ -8,7 +8,6 @@ Like [CGSpunk](https://github.com/danBhentschel/CGSpunk), except it's made in Ja
 Allows you to queue batches of matches on any multiplayer game of CodinGame.  
 Simulates PLAY in the IDE and gathers results.  
 You can add an unlimited number of source code in the configuration file, they'll be benchmarked one by one.  
-Supports multi-account; matches are distributed between the configured accounts to fasten the benchmark.  
 A .txt report file with global winrate and replay links will be produced for each of them.  
 Reports for a single code looks like [this](https://pastebin.com/PSJphjsi)
 
@@ -91,4 +90,7 @@ The configuration uses the JSON format, and must contains the following items :
  * Error margin in stats
  * Proper draw support
  * Proper 1vN support
-
+ * Separated winrate for J1/J2 starting positions
+ * Early benchmark cut if winrate is too low (with a minimum a played matches)
+ * Excel-like output
+ * Record random seeds and reuse them for later benchmarks
