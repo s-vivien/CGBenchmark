@@ -148,7 +148,7 @@ public class CGBenchmark {
         // Selecting appropriate cookie; we keep the one that expires the later
         Optional<Cookie> optCookie = loginResponse.headers().values(Constants.SET_COOKIE).stream()
                 .map(c -> Cookie.parse(HttpUrl.parse(Constants.CG_HOST), c))
-                .filter(c -> c.name().equals(Constants.REMCG))
+                .filter(c -> c.name().equals(Constants.REMCG) && c.expiresAt() > new Date().getTime())
                 .sorted((a, b) -> (int) (b.expiresAt() - a.expiresAt()))
                 .findFirst();
 
