@@ -47,16 +47,17 @@ public class ResultWrapper {
     }
 
     public String getWinrateString() {
-        int W = 0, T = 0;
+        int W = 0, T = 0, C = 0;
         for (TestOutput to : results) {
             if (!to.isError()) {
                 T++;
                 if (to.isWin()) W++;
+                if (to.isCrash()) C++;
             }
         }
 
         double winrate = (100.0 * ((double) W) / T);
-        return formatter.format(winrate) + "% out of " + T + " matches";
+        return formatter.format(winrate) + "% out of " + T + " matches" + (C > 0 ? " (crashed " + C + " times)" : "");
     }
 
     public StringBuilder getReportBuilder() {

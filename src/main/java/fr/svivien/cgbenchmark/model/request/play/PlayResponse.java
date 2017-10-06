@@ -15,8 +15,14 @@ public class PlayResponse {
         public String message;
     }
 
+    public class Frame {
+        public int agentId;
+        public String gameInformation;
+    }
+
     public class PlayResponseSuccess {
         public List<Integer> scores;
+        public List<Frame> frames;
         public int gameId;
     }
 }
