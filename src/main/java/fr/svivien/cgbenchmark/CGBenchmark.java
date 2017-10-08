@@ -100,13 +100,13 @@ public class CGBenchmark {
                 threadPool.shutdown();
                 threadPool.awaitTermination(5, TimeUnit.DAYS);
 
-                LOG.info("Final results : " + resultWrapper.getWinrateString());
+                LOG.info("Final results : " + resultWrapper.getWinrateString(false));
 
                 // Complete the report with all the results and final winrate
                 resultWrapper.finishReport();
 
                 // Write report to external file
-                String reportFileName = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date()) + "-" + codeName + "_" + codeCfg.getEnemyName();
+                String reportFileName = codeName + "-" + codeCfg.getEnemyName() + "-" + codeCfg.getEnemyAgentId() + "-" + resultWrapper.getWinrateString(true);
                 LOG.info("Writing final report to : " + reportFileName);
                 try (PrintWriter out = new PrintWriter(reportFileName + ".txt")) {
                     out.println(resultWrapper.getReportBuilder().toString());

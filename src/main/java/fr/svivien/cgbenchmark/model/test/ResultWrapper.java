@@ -32,7 +32,7 @@ public class ResultWrapper {
 
         // Print temporary results every 6 matches
         if (results.size() % 6 == 0) {
-            LOG.info("Temporary results : " + getWinrateString());
+            LOG.info("Temporary results : " + getWinrateString(false));
         }
     }
 
@@ -40,13 +40,13 @@ public class ResultWrapper {
         // Sorting results by ID to keep the same order regardless of the consumers order/speed, for easier comparison between code results
         results.sort((a, b) -> a.getResultString().compareTo(b.getResultString()));
         reportBuilder.append("End : " + (new Date()) + System.lineSeparator() + System.lineSeparator());
-        reportBuilder.append(getWinrateString() + System.lineSeparator() + System.lineSeparator());
+        reportBuilder.append(getWinrateString(false) + System.lineSeparator() + System.lineSeparator());
         for (TestOutput testOutput : results) {
             reportBuilder.append(testOutput.getResultString() + System.lineSeparator());
         }
     }
 
-    public String getWinrateString() {
+    public String getWinrateString(boolean shortVersion) {
         int W = 0, T = 0, C = 0;
         for (TestOutput to : results) {
             if (!to.isError()) {
@@ -57,7 +57,7 @@ public class ResultWrapper {
         }
 
         double winrate = (100.0 * ((double) W) / T);
-        return formatter.format(winrate) + "% out of " + T + " matches" + (C > 0 ? " (crashed " + C + " times)" : "");
+        return formatter.format(winrate).replace(",", ".") + (shortVersion ? "" : " % out of " + T + " matches" + (C > 0 ? " (crashed " + C + " times)" : ""));
     }
 
     public StringBuilder getReportBuilder() {
