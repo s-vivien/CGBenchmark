@@ -29,7 +29,6 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -100,15 +99,15 @@ public class CGBenchmark {
                 threadPool.shutdown();
                 threadPool.awaitTermination(5, TimeUnit.DAYS);
 
-                LOG.info("Final results : " + resultWrapper.getWinrateString(false));
+                LOG.info("Final results :" + resultWrapper.getWinrateDetails());
 
                 // Complete the report with all the results and final winrate
                 resultWrapper.finishReport();
 
                 // Write report to external file
-                String reportFileName = codeName + "-" + codeCfg.getEnemyName() + "-" + codeCfg.getEnemyAgentId() + "-" + resultWrapper.getWinrateString(true);
+                String reportFileName = codeName + "-" + codeCfg.getEnemyName() + "-" + codeCfg.getEnemyAgentId() + "-" + resultWrapper.getShortFilenameWinrate() + ".txt";
                 LOG.info("Writing final report to : " + reportFileName);
-                try (PrintWriter out = new PrintWriter(reportFileName + ".txt")) {
+                try (PrintWriter out = new PrintWriter(reportFileName)) {
                     out.println(resultWrapper.getReportBuilder().toString());
                 } catch (Exception e) {
                     LOG.warn("An error has occurred when writing final report", e);

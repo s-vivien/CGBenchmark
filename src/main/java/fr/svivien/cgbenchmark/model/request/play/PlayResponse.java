@@ -23,6 +23,6 @@ public class PlayResponse {
     public class PlayResponseSuccess {
         public List<Integer> scores;
         public List<Frame> frames;
-        public int gameId;
+        public long gameId;
     }
 }

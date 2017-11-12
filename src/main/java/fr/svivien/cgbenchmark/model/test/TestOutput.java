@@ -10,13 +10,15 @@ public class TestOutput {
 
     private boolean crash;
     private boolean error;
-    private boolean win;
+    private int scoreDiff;
+
+    private boolean isReverse;
     private String resultString;
 
     private static final String outputFormat = "[ %8s ][ %2s ] %s";
 
     public TestOutput(TestInput test, PlayResponse response) {
-
+        isReverse = test.isReverse();
         // Checks if your AI crashed or not ..
         if (response != null && response.success != null) {
             int myAgentIndex = test.isReverse() ? 1 : 0;
@@ -33,8 +35,11 @@ public class TestOutput {
             this.error = true;
             resultMessage = "ERROR" + (response == null ? "" : (" " + response.error.message));
         } else {
-            this.win = response.success.scores.get(test.isReverse() ? 1 : 0) > response.success.scores.get(test.isReverse() ? 0 : 1);
-            resultMessage = Constants.CG_HOST + "/replay/" + response.success.gameId + " " + (this.win ? "WIN !" : "LOSE..");
+            this.scoreDiff = response.success.scores.get(0) - response.success.scores.get(1);
+            if (test.isReverse()) {
+                this.scoreDiff *= -1;
+            }
+            resultMessage = Constants.CG_HOST + "/replay/" + response.success.gameId + " " + (this.scoreDiff > 0 ? "WIN !" : (this.scoreDiff < 0 ? "LOSE.." : "DRAW"));
         }
 
         this.resultString = String.format(outputFormat, "SEED " + test.getSeedNumber(), test.isReverse() ? "J2" : "J1", resultMessage + (crash ? " (CRASH)" : ""));
@@ -44,8 +49,8 @@ public class TestOutput {
         return error;
     }
 
-    public boolean isWin() {
-        return win;
+    public int getScoreDiff() {
+        return scoreDiff;
     }
 
     public boolean isCrash() {
@@ -54,5 +59,9 @@ public class TestOutput {
 
     public String getResultString() {
         return resultString;
+    }
+
+    public boolean isReverse() {
+        return isReverse;
     }
 }
