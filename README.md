@@ -87,8 +87,8 @@ The configuration uses the JSON format, and must contains the following items :
 
 ### Things that would be cool to have:
 
+ * ETA display
+ * Reduce benchmark time with adaptive cooldown between games
  * Error margin in stats
- * Proper 1vN support
  * Early benchmark cut if winrate is too low (with a minimum a played matches)
  * Excel-like output
- * Record random seeds and reuse them for later benchmarks
