@@ -44,7 +44,7 @@ public class CGBenchmark {
     private GlobalConfiguration globalConfiguration = null;
     private List<Consumer> accountConsumerList = new ArrayList<>();
     private Broker testBroker = new Broker();
-    private Random rnd = new Random(28731L);
+    private Random rnd = new Random();
     private EnemyConfiguration me = new EnemyConfiguration(-1, "[ME]");
 
     public CGBenchmark(String cfgFilePath) {
@@ -183,6 +183,7 @@ public class CGBenchmark {
     }
 
     private void createTests(CodeConfiguration codeCfg) throws IOException, InterruptedException {
+        rnd.setSeed(28731L);
         String codeContent = new String(Files.readAllBytes(Paths.get(codeCfg.getSourcePath())));
 
         // Filling the broker with all the tests
