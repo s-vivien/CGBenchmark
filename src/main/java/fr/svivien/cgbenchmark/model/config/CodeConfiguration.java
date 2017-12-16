@@ -1,12 +1,17 @@
 package fr.svivien.cgbenchmark.model.config;
 
+import java.util.List;
+
 public class CodeConfiguration {
 
     private String sourcePath;
     private Integer nbReplays;
     private String language;
-    private Integer enemyAgentId;
-    private String enemyName = "UNKNOWN";
+    private List<EnemyConfiguration> enemies;
+
+    public List<EnemyConfiguration> getEnemies() {
+        return enemies;
+    }
 
     public String getSourcePath() {
         return sourcePath;
@@ -20,11 +25,4 @@ public class CodeConfiguration {
         return language;
     }
 
-    public Integer getEnemyAgentId() {
-        return enemyAgentId;
-    }
-
-    public String getEnemyName() {
-        return enemyName;
-    }
 }

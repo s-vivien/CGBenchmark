@@ -4,6 +4,10 @@ Like [CGSpunk](https://github.com/danBhentschel/CGSpunk), except it's made in Ja
 ... and you don't need to have your browser open  
 ... and you can queue several codes to run big fat batches of games and compare results easily.
 
+### Latest features :
+- CGBenchmark now supports 1vN games
+- You can now define a N enemies pool for each code configuration. Enemies will be picked randomly at each game (as well as their number, which will be a random value between `minEnemiesNumber` and `maxEnemiesNumber`). These random choices are deterministic, i.e. if you benchmark two codes with the same `enemies` configuration and a fixed seed list, each seed will be played against the same enemies every time.
+
 ### What it does:
 Allows you to queue batches of matches on any multiplayer game of CodinGame.  
 Simulates PLAY in the IDE and gathers results.  
@@ -56,9 +60,17 @@ The configuration uses the JSON format, and must contains the following items :
   // Cooldown between every match, 20 is the minimum to avoid CG's limitation
   "requestCooldown": "20",
 
-  // Position of your AI, 0=player1, 1=player2, -1=every match played twice with swapped positions
+  // [0, N] forced start position at N
+  // -1 each game is played twice; first as position 0 then as position 1 (suited for 1v1 games) works only with fixed seed list
+  // -2 each game is played once, with random starting position for me and enemies
   "playerPosition": "-1",
 
+  // Minimum number of enemies to play against
+  "minEnemiesNumber": "1",
+  
+  // Maximum number of enemies to play against
+  "maxEnemiesNumber": "3",
+  
   // List of tested codes
   "codeConfigurationList": [
     {
@@ -68,17 +80,42 @@ The configuration uses the JSON format, and must contains the following items :
       "nbReplays": "1",
       // Code language
       "language": "C++",
-      // AgentID of your enemy
-      "enemyAgentId": "1408472",
-      // Name of your enemy, for log purpose
-      "enemyName": "Agade"
+      // Enemies list. At each game, random enemies are picked from this list (their number is also picked randomly between <minEnemiesNumber> and <maxEnemiesNumber>)
+      "enemies": [
+        {
+          // Enemy agentId
+          "agentId": "762230",
+          // Enemy name
+          "name": "Agade"
+        },
+        {
+          "agentId": "817482",
+          "name": "pb4"
+        },
+        {
+          "agentId": "812582",
+          "name": "reCurse"
+        }
+      ]
     },
     {
       "sourcePath": "C:/CGBenchmark/totest/2.cpp",
       "nbReplays": "1",
       "language": "C++",
-      "enemyAgentId": "1408472",
-      "enemyName": "Agade"
+      "enemies": [
+        {
+          "agentId": "762230",
+          "name": "Agade"
+        },
+        {
+          "agentId": "817482",
+          "name": "pb4"
+        },
+        {
+          "agentId": "812582",
+          "name": "reCurse"
+        }
+      ]
     },
     [...]
   ]
@@ -87,6 +124,7 @@ The configuration uses the JSON format, and must contains the following items :
 
 ### Things that would be cool to have:
 
+ * Bring back separated P1/P2 winrates for 1v1 games
  * ETA display
  * Reduce benchmark time with adaptive cooldown between games
  * Error margin in stats

@@ -32,5 +32,4 @@ public class Main {
         CGBenchmark cgBenchmark = new CGBenchmark(cfgPath);
         cgBenchmark.launch();
     }
-
 }
