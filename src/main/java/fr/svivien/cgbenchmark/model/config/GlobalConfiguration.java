@@ -42,11 +42,11 @@ public class GlobalConfiguration {
         return playerPosition;
     }
 
-    public boolean is1v1PlayedWithEachPositions() {
+    public boolean isEveryPositionConfiguration() {
         return playerPosition == -1;
     }
 
-    public boolean isFullRandomStartPosition() {
+    public boolean isSingleRandomStartPosition() {
         return playerPosition == -2;
     }
 

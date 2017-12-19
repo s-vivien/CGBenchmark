@@ -183,30 +183,63 @@ public class CGBenchmark {
     }
 
     private void createTests(CodeConfiguration codeCfg) throws IOException, InterruptedException {
-        rnd.setSeed(28731L);
         String codeContent = new String(Files.readAllBytes(Paths.get(codeCfg.getSourcePath())));
 
         // Filling the broker with all the tests
         for (int replay = 0; replay < codeCfg.getNbReplays(); replay++) {
+            rnd.setSeed(28731L); /** More arbitrary values ... */
 
             if (globalConfiguration.getRandomSeed()) {
                 List<EnemyConfiguration> selectedPlayers = getRandomEnemies(codeCfg);
-                int myStartingPosition = globalConfiguration.isFullRandomStartPosition() ? rnd.nextInt(selectedPlayers.size() + 1) : globalConfiguration.getPlayerPosition();
-                addTest(selectedPlayers, replay, null, codeContent, codeCfg.getLanguage(), myStartingPosition);
+                int myStartingPosition = globalConfiguration.isSingleRandomStartPosition() ? rnd.nextInt(selectedPlayers.size() + 1) : globalConfiguration.getPlayerPosition();
+                addTestFixedPosition(selectedPlayers, replay, null, codeContent, codeCfg.getLanguage(), myStartingPosition);
             } else {
                 for (int testNumber = 0; testNumber < globalConfiguration.getSeedList().size(); testNumber++) {
                     List<EnemyConfiguration> selectedPlayers = getRandomEnemies(codeCfg);
                     String seed = SeedCleaner.cleanSeed(globalConfiguration.getSeedList().get(testNumber), globalConfiguration.getMultiName(), selectedPlayers.size() + 1);
-                    if (globalConfiguration.is1v1PlayedWithEachPositions()) {
-                        addTest(selectedPlayers, testNumber, seed, codeContent, codeCfg.getLanguage(), 0);
-                        addTest(selectedPlayers, testNumber, seed, codeContent, codeCfg.getLanguage(), 1);
+                    if (globalConfiguration.isEveryPositionConfiguration()) {
+                        addTestAllPermutations(selectedPlayers, testNumber, seed, codeContent, codeCfg.getLanguage());
                     } else {
-                        int myStartingPosition = globalConfiguration.isFullRandomStartPosition() ? rnd.nextInt(selectedPlayers.size() + 1) : globalConfiguration.getPlayerPosition();
-                        addTest(selectedPlayers, testNumber, seed, codeContent, codeCfg.getLanguage(), myStartingPosition);
+                        int myStartingPosition = globalConfiguration.isSingleRandomStartPosition() ? rnd.nextInt(selectedPlayers.size() + 1) : globalConfiguration.getPlayerPosition();
+                        addTestFixedPosition(selectedPlayers, testNumber, seed, codeContent, codeCfg.getLanguage(), myStartingPosition);
                     }
                 }
             }
         }
+    }
+
+    private void addTestAllPermutations(List<EnemyConfiguration> selectedPlayers, int seedNumber, String seed, String codeContent, String lang) throws InterruptedException {
+        List<EnemyConfiguration> players = selectedPlayers.stream().collect(Collectors.toList());
+        players.add(me);
+        List<List<EnemyConfiguration>> permutations = generatePermutations(players);
+        for (List<EnemyConfiguration> permutation : permutations) {
+            testBroker.queue.put(new TestInput(seedNumber, seed, codeContent, lang, permutation));
+        }
+    }
+
+    private void addTestFixedPosition(List<EnemyConfiguration> selectedPlayers, int seedNumber, String seed, String codeContent, String lang, int myStartingPosition) throws InterruptedException {
+        List<EnemyConfiguration> players = selectedPlayers.stream().collect(Collectors.toList());
+        players.add(myStartingPosition, me);
+        testBroker.queue.put(new TestInput(seedNumber, seed, codeContent, lang, players));
+    }
+
+    private List<List<EnemyConfiguration>> generatePermutations(List<EnemyConfiguration> original) {
+        if (original.size() == 0) {
+            List<List<EnemyConfiguration>> result = new ArrayList<>();
+            result.add(new ArrayList<>());
+            return result;
+        }
+        EnemyConfiguration firstElement = original.remove(0);
+        List<List<EnemyConfiguration>> returnValue = new ArrayList<>();
+        List<List<EnemyConfiguration>> permutations = generatePermutations(original);
+        for (List<EnemyConfiguration> smallerPermuted : permutations) {
+            for (int index = 0; index <= smallerPermuted.size(); index++) {
+                List<EnemyConfiguration> temp = new ArrayList<>(smallerPermuted);
+                temp.add(index, firstElement);
+                returnValue.add(temp);
+            }
+        }
+        return returnValue;
     }
 
     private List<EnemyConfiguration> getRandomEnemies(CodeConfiguration codeCfg) {
@@ -217,12 +250,6 @@ public class CGBenchmark {
         } else {
             return selectedPlayers.subList(0, globalConfiguration.getMinEnemiesNumber());
         }
-    }
-
-    private void addTest(List<EnemyConfiguration> selectedPlayers, int seedNumber, String seed, String codeContent, String lang, int myStartingPosition) throws InterruptedException {
-        List<EnemyConfiguration> players = selectedPlayers.stream().collect(Collectors.toList());
-        players.add(myStartingPosition, me);
-        testBroker.queue.put(new TestInput(seedNumber, seed, codeContent, lang, players));
     }
 
     private void checkConfiguration(GlobalConfiguration globalConfiguration) throws IllegalArgumentException {
@@ -258,8 +285,8 @@ public class CGBenchmark {
             throw new IllegalArgumentException("You must provide some seeds or enable randomSeed");
         }
 
-        // Checks that there is a fixed seed list when playing with reversed starting positions
-        if (globalConfiguration.getRandomSeed() && globalConfiguration.is1v1PlayedWithEachPositions()) {
+        // Checks that there is a fixed seed list when playing with every starting position configuration
+        if (globalConfiguration.getRandomSeed() && globalConfiguration.isEveryPositionConfiguration()) {
             throw new IllegalArgumentException("Playing each seed with swapped positions requires fixed seed list");
         }
 

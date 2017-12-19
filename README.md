@@ -5,6 +5,7 @@ Like [CGSpunk](https://github.com/danBhentschel/CGSpunk), except it's made in Ja
 ... and you can queue several codes to run big fat batches of games and compare results easily.
 
 ### Latest features :
+- `playerPosition` now generates every starting positions configuration, according to player number (2 permutations in 1v1, 6 in 1v2 and 24 in 1v3). See comments in configuration file for detailed explanations.
 - CGBenchmark now supports 1vN games
 - You can now define a N enemies pool for each code configuration. Enemies will be picked randomly at each game (as well as their number, which will be a random value between `minEnemiesNumber` and `maxEnemiesNumber`). These random choices are deterministic, i.e. if you benchmark two codes with the same `enemies` configuration and a fixed seed list, each seed will be played against the same enemies every time.
 
@@ -61,8 +62,8 @@ The configuration uses the JSON format, and must contains the following items :
   "requestCooldown": "20",
 
   // [0, N] forced start position at N
-  // -1 each game is played twice; first as position 0 then as position 1 (suited for 1v1 games) works only with fixed seed list
-  // -2 each game is played once, with random starting position for me and enemies
+  // -1 : Each seed is played with every starting positions configuration. (Works only with fixed seed list). In 1v1, it will generate 2 games, 6 games in 1v2 and 24 games in 1v3. Best suited for non symmetrical and/or turn-based games.
+  // -2 : Each seed is played once, with random starting positions. Best suited for perfectly symmetrical and non turn-based games in which starting position doesn't really matter, like MM, GoD, CotC, GitC, ...
   "playerPosition": "-1",
 
   // Minimum number of enemies to play against
