@@ -1,7 +1,10 @@
 package fr.svivien.cgbenchmark.model.request.play;
 
+import fr.svivien.cgbenchmark.model.config.EnemyConfiguration;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Request body for a PLAY in the CG IDE
@@ -10,12 +13,11 @@ public class PlayRequest extends ArrayList<Object> {
 
     public Data data;
 
-    public PlayRequest(String code, String lang, String ide, String gameOptions, int agentId, boolean reverse) {
+    public PlayRequest(String code, String lang, String ide, String gameOptions, List<EnemyConfiguration> enemies) {
         add(ide);
         Multi multi = new Multi();
         multi.gameOptions = gameOptions;
-        multi.agentsIds.add(agentId);
-        multi.agentsIds.add(reverse ? 1 : 0, -1);
+        multi.agentsIds.addAll(enemies.stream().map(EnemyConfiguration::getAgentId).collect(Collectors.toList()));
         data = new Data();
         data.programmingLanguageId = lang;
         data.code = code;

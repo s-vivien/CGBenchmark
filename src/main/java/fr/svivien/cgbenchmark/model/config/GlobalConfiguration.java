@@ -9,6 +9,8 @@ public class GlobalConfiguration {
     private Integer requestCooldown;
     private Boolean randomSeed;
     private Integer playerPosition;
+    private Integer minEnemiesNumber;
+    private Integer maxEnemiesNumber;
     private List<CodeConfiguration> codeConfigurationList;
     private String multiName;
 
@@ -18,10 +20,6 @@ public class GlobalConfiguration {
 
     public List<AccountConfiguration> getAccountConfigurationList() {
         return accountConfigurationList;
-    }
-
-    public Integer getPlayerPosition() {
-        return playerPosition;
     }
 
     public List<String> getSeedList() {
@@ -40,11 +38,27 @@ public class GlobalConfiguration {
         return codeConfigurationList;
     }
 
-    public boolean isPlayedWithEachPositions() {
+    public Integer getPlayerPosition() {
+        return playerPosition;
+    }
+
+    public boolean isEveryPositionConfiguration() {
         return playerPosition == -1;
     }
 
-    public boolean isPositionReversed() {
-        return playerPosition == 1;
+    public boolean isSingleRandomStartPosition() {
+        return playerPosition == -2;
+    }
+
+    public Integer getMinEnemiesNumber() {
+        return minEnemiesNumber;
+    }
+
+    public Integer getMaxEnemiesNumber() {
+        return maxEnemiesNumber;
+    }
+
+    public Integer getEnemiesNumberDelta() {
+        return maxEnemiesNumber - minEnemiesNumber;
     }
 }

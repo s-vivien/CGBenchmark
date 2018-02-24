@@ -83,7 +83,7 @@ public class Consumer implements Runnable {
     }
 
     private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
-        PlayRequest request = new PlayRequest(test.getCode(), test.getLang(), ide, test.getSeed(), test.getAgentId(), test.isReverse());
+        PlayRequest request = new PlayRequest(test.getCode(), test.getLang(), ide, test.getSeed(), test.getPlayers());
         Call<PlayResponse> call = cgPlayApi.play(request, Constants.CG_HOST + "/ide/" + ide, cookie);
         try {
             PlayResponse playResponse = call.execute().body();
@@ -93,6 +93,18 @@ public class Consumer implements Runnable {
             return to;
         }
     }
+
+    // DUMMY for test purpose
+//    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
+//        PlayResponse resp = new PlayResponse();
+//        resp.success = resp.new PlayResponseSuccess();
+//        resp.success.frames = new ArrayList<>();
+//        resp.success.scores = new ArrayList<>();
+//        for (int i = 0; i < test.getPlayers().size(); i++) {
+//            resp.success.scores.add((int) (Math.random() * 10));
+//        }
+//        return new TestOutput(test, resp);
+//    }
 
     public void setResultWrapper(ResultWrapper resultWrapper) {
         this.resultWrapper = resultWrapper;

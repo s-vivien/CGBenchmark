@@ -11,15 +11,6 @@ import java.util.concurrent.TimeUnit;
 public class Broker {
     public ArrayBlockingQueue<TestInput> queue = new ArrayBlockingQueue<>(5000);
 
-    public void putTest(boolean isPlayedWithEachPositions, boolean isPositionReversed, int testNumber, int agentId, String seed, String codeContent, String codeLanguage) throws InterruptedException {
-        if (isPlayedWithEachPositions) {
-            this.queue.put(new TestInput(testNumber, agentId, seed, codeContent, codeLanguage, true));
-            this.queue.put(new TestInput(testNumber, agentId, seed, codeContent, codeLanguage, false));
-        } else {
-            this.queue.put(new TestInput(testNumber, agentId, seed, codeContent, codeLanguage, isPositionReversed));
-        }
-    }
-
     public TestInput getNextTest() throws InterruptedException {
         return this.queue.poll(1, TimeUnit.SECONDS);
     }

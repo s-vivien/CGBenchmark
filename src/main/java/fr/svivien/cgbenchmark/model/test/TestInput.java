@@ -1,32 +1,30 @@
 package fr.svivien.cgbenchmark.model.test;
 
+import fr.svivien.cgbenchmark.model.config.EnemyConfiguration;
+
+import java.util.List;
+
 /**
  * Test input data
  */
 public class TestInput {
 
     private int seedNumber;
-    private int agentId;
     private String seed;
     private String code;
     private String lang;
-    private boolean reverse;
+    private List<EnemyConfiguration> players;
 
-    public TestInput(int seedNumber, int agentId, String seed, String code, String lang, boolean reverse) {
+    public TestInput(int seedNumber, String seed, String code, String lang, List<EnemyConfiguration> players) {
         this.seedNumber = seedNumber;
-        this.agentId = agentId;
         this.seed = seed;
         this.code = code;
         this.lang = lang;
-        this.reverse = reverse;
+        this.players = players;
     }
 
     public int getSeedNumber() {
         return seedNumber;
-    }
-
-    public int getAgentId() {
-        return agentId;
     }
 
     public String getSeed() {
@@ -37,11 +35,11 @@ public class TestInput {
         return code;
     }
 
-    public String getLang() {
-        return lang;
+    public List<EnemyConfiguration> getPlayers() {
+        return players;
     }
 
-    public boolean isReverse() {
-        return reverse;
+    public String getLang() {
+        return lang;
     }
 }

@@ -8,12 +8,14 @@ import fr.svivien.cgbenchmark.api.LoginApi;
 import fr.svivien.cgbenchmark.api.SessionApi;
 import fr.svivien.cgbenchmark.model.config.AccountConfiguration;
 import fr.svivien.cgbenchmark.model.config.CodeConfiguration;
+import fr.svivien.cgbenchmark.model.config.EnemyConfiguration;
 import fr.svivien.cgbenchmark.model.config.GlobalConfiguration;
 import fr.svivien.cgbenchmark.model.request.login.LoginRequest;
 import fr.svivien.cgbenchmark.model.request.login.LoginResponse;
 import fr.svivien.cgbenchmark.model.request.session.SessionRequest;
 import fr.svivien.cgbenchmark.model.request.session.SessionResponse;
 import fr.svivien.cgbenchmark.model.test.ResultWrapper;
+import fr.svivien.cgbenchmark.model.test.TestInput;
 import fr.svivien.cgbenchmark.producerconsumer.Broker;
 import fr.svivien.cgbenchmark.producerconsumer.Consumer;
 import okhttp3.Cookie;
@@ -29,13 +31,11 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class CGBenchmark {
 
@@ -44,6 +44,8 @@ public class CGBenchmark {
     private GlobalConfiguration globalConfiguration = null;
     private List<Consumer> accountConsumerList = new ArrayList<>();
     private Broker testBroker = new Broker();
+    private Random rnd = new Random();
+    private EnemyConfiguration me = new EnemyConfiguration(-1, "[ME]");
 
     public CGBenchmark(String cfgFilePath) {
         // Parsing configuration file
@@ -87,7 +89,11 @@ public class CGBenchmark {
             try {
                 createTests(codeCfg);
 
-                LOG.info("Launching " + testBroker.getTestSize() + " tests " + codeName + " against " + codeCfg.getEnemyAgentId() + "/" + codeCfg.getEnemyName() + " ...");
+                String logStr = "Launching " + testBroker.getTestSize() + " tests " + codeName + " against";
+                for (EnemyConfiguration ec : codeCfg.getEnemies()) {
+                    logStr += " " + ec.getName() + "_" + ec.getAgentId();
+                }
+                LOG.info(logStr);
 
                 // Adding consumers in the thread-pool and wiring fresh new resultWrapper
                 for (Consumer consumer : accountConsumerList) {
@@ -105,7 +111,11 @@ public class CGBenchmark {
                 resultWrapper.finishReport();
 
                 // Write report to external file
-                String reportFileName = codeName + "-" + codeCfg.getEnemyName() + "-" + codeCfg.getEnemyAgentId() + "-" + resultWrapper.getShortFilenameWinrate() + ".txt";
+                String reportFileName = codeName;
+                for (EnemyConfiguration ec : codeCfg.getEnemies()) {
+                    codeName += "-" + ec.getName() + "_" + ec.getAgentId();
+                }
+                reportFileName += "-" + resultWrapper.getShortFilenameWinrate() + ".txt";
                 LOG.info("Writing final report to : " + reportFileName);
                 try (PrintWriter out = new PrintWriter(reportFileName)) {
                     out.println(resultWrapper.getReportBuilder().toString());
@@ -177,14 +187,68 @@ public class CGBenchmark {
 
         // Filling the broker with all the tests
         for (int replay = 0; replay < codeCfg.getNbReplays(); replay++) {
+            rnd.setSeed(28731L); /** More arbitrary values ... */
+
             if (globalConfiguration.getRandomSeed()) {
-                testBroker.putTest(globalConfiguration.isPlayedWithEachPositions(), globalConfiguration.isPositionReversed(), replay, codeCfg.getEnemyAgentId(), null, codeContent, codeCfg.getLanguage());
+                List<EnemyConfiguration> selectedPlayers = getRandomEnemies(codeCfg);
+                int myStartingPosition = globalConfiguration.isSingleRandomStartPosition() ? rnd.nextInt(selectedPlayers.size() + 1) : globalConfiguration.getPlayerPosition();
+                addTestFixedPosition(selectedPlayers, replay, null, codeContent, codeCfg.getLanguage(), myStartingPosition);
             } else {
                 for (int testNumber = 0; testNumber < globalConfiguration.getSeedList().size(); testNumber++) {
-                    String seed = globalConfiguration.getSeedList().get(testNumber);
-                    testBroker.putTest(globalConfiguration.isPlayedWithEachPositions(), globalConfiguration.isPositionReversed(), testNumber, codeCfg.getEnemyAgentId(), seed, codeContent, codeCfg.getLanguage());
+                    List<EnemyConfiguration> selectedPlayers = getRandomEnemies(codeCfg);
+                    String seed = SeedCleaner.cleanSeed(globalConfiguration.getSeedList().get(testNumber), globalConfiguration.getMultiName(), selectedPlayers.size() + 1);
+                    if (globalConfiguration.isEveryPositionConfiguration()) {
+                        addTestAllPermutations(selectedPlayers, testNumber, seed, codeContent, codeCfg.getLanguage());
+                    } else {
+                        int myStartingPosition = globalConfiguration.isSingleRandomStartPosition() ? rnd.nextInt(selectedPlayers.size() + 1) : globalConfiguration.getPlayerPosition();
+                        addTestFixedPosition(selectedPlayers, testNumber, seed, codeContent, codeCfg.getLanguage(), myStartingPosition);
+                    }
                 }
             }
+        }
+    }
+
+    private void addTestAllPermutations(List<EnemyConfiguration> selectedPlayers, int seedNumber, String seed, String codeContent, String lang) throws InterruptedException {
+        List<EnemyConfiguration> players = selectedPlayers.stream().collect(Collectors.toList());
+        players.add(me);
+        List<List<EnemyConfiguration>> permutations = generatePermutations(players);
+        for (List<EnemyConfiguration> permutation : permutations) {
+            testBroker.queue.put(new TestInput(seedNumber, seed, codeContent, lang, permutation));
+        }
+    }
+
+    private void addTestFixedPosition(List<EnemyConfiguration> selectedPlayers, int seedNumber, String seed, String codeContent, String lang, int myStartingPosition) throws InterruptedException {
+        List<EnemyConfiguration> players = selectedPlayers.stream().collect(Collectors.toList());
+        players.add(myStartingPosition, me);
+        testBroker.queue.put(new TestInput(seedNumber, seed, codeContent, lang, players));
+    }
+
+    private List<List<EnemyConfiguration>> generatePermutations(List<EnemyConfiguration> original) {
+        if (original.size() == 0) {
+            List<List<EnemyConfiguration>> result = new ArrayList<>();
+            result.add(new ArrayList<>());
+            return result;
+        }
+        EnemyConfiguration firstElement = original.remove(0);
+        List<List<EnemyConfiguration>> returnValue = new ArrayList<>();
+        List<List<EnemyConfiguration>> permutations = generatePermutations(original);
+        for (List<EnemyConfiguration> smallerPermuted : permutations) {
+            for (int index = 0; index <= smallerPermuted.size(); index++) {
+                List<EnemyConfiguration> temp = new ArrayList<>(smallerPermuted);
+                temp.add(index, firstElement);
+                returnValue.add(temp);
+            }
+        }
+        return returnValue;
+    }
+
+    private List<EnemyConfiguration> getRandomEnemies(CodeConfiguration codeCfg) {
+        List<EnemyConfiguration> selectedPlayers = codeCfg.getEnemies().stream().collect(Collectors.toList());
+        Collections.shuffle(selectedPlayers, rnd);
+        if (globalConfiguration.getEnemiesNumberDelta() > 0) {
+            return selectedPlayers.subList(0, globalConfiguration.getMinEnemiesNumber() + rnd.nextInt(globalConfiguration.getEnemiesNumberDelta() + 1));
+        } else {
+            return selectedPlayers.subList(0, globalConfiguration.getMinEnemiesNumber());
         }
     }
 
@@ -221,8 +285,13 @@ public class CGBenchmark {
             throw new IllegalArgumentException("You must provide some seeds or enable randomSeed");
         }
 
+        // Checks that there is a fixed seed list when playing with every starting position configuration
+        if (globalConfiguration.getRandomSeed() && globalConfiguration.isEveryPositionConfiguration()) {
+            throw new IllegalArgumentException("Playing each seed with swapped positions requires fixed seed list");
+        }
+
         // Checks player position
-        if (globalConfiguration.getPlayerPosition() == null || globalConfiguration.getPlayerPosition() < -1 || globalConfiguration.getPlayerPosition() > 1) {
+        if (globalConfiguration.getPlayerPosition() == null || globalConfiguration.getPlayerPosition() < -2 || globalConfiguration.getPlayerPosition() > 3) {
             throw new IllegalArgumentException("You must provide a valid player position (-1, 0 or 1)");
         }
     }
