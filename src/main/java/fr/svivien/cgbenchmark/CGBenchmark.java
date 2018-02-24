@@ -81,9 +81,6 @@ public class CGBenchmark {
         // Launching tests
         for (CodeConfiguration codeCfg : globalConfiguration.getCodeConfigurationList()) {
 
-            // Enemies are sorted by agentId to keep report filename consistent
-            codeCfg.getEnemies().sort((a, b) -> a.getAgentId() - b.getAgentId());
-
             ExecutorService threadPool = Executors.newFixedThreadPool(accountConsumerList.size());
 
             Path p = Paths.get(codeCfg.getSourcePath());
