@@ -1,9 +1,34 @@
 package fr.svivien.cgbenchmark;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
+
 import fr.svivien.cgbenchmark.api.LoginApi;
 import fr.svivien.cgbenchmark.api.SessionApi;
 import fr.svivien.cgbenchmark.model.config.AccountConfiguration;
@@ -21,21 +46,9 @@ import fr.svivien.cgbenchmark.producerconsumer.Consumer;
 import okhttp3.Cookie;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import retrofit2.Call;
 import retrofit2.GsonConverterFactory;
 import retrofit2.Retrofit;
-
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class CGBenchmark {
 
@@ -46,6 +59,7 @@ public class CGBenchmark {
     private Broker testBroker = new Broker();
     private Random rnd = new Random();
     private EnemyConfiguration me = new EnemyConfiguration(-1, "[ME]");
+    private AtomicBoolean pause = new AtomicBoolean(false);
 
     public CGBenchmark(String cfgFilePath) {
         // Parsing configuration file
@@ -69,7 +83,7 @@ public class CGBenchmark {
                 LOG.fatal("Error while retrieving account cookie and session", e);
                 System.exit(1);
             }
-            accountConsumerList.add(new Consumer(accountCfg.getAccountName(), testBroker, accountCfg.getAccountCookie(), accountCfg.getAccountIde(), globalConfiguration.getRequestCooldown()));
+            accountConsumerList.add(new Consumer(accountCfg.getAccountName(), testBroker, accountCfg.getAccountCookie(), accountCfg.getAccountIde(), globalConfiguration.getRequestCooldown(), pause));
             LOG.info("Account " + accountCfg.getAccountName() + " successfully registered");
         }
     }
@@ -303,5 +317,13 @@ public class CGBenchmark {
         JsonReader reader = new JsonReader(new InputStreamReader(configFileInputStream, "UTF-8"));
         return gson.fromJson(reader, GlobalConfiguration.class);
     }
+
+	public void pause() {
+		this.pause.set(true);
+	}
+
+	public void resume() {
+		this.pause.set(false);
+	}
 
 }
