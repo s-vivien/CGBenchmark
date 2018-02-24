@@ -13,6 +13,15 @@ public class GlobalConfiguration {
     private Integer maxEnemiesNumber;
     private List<CodeConfiguration> codeConfigurationList;
     private String multiName;
+    private boolean saveLogs;
+
+    public void setSaveLogs(boolean saveLogs) {
+        this.saveLogs = saveLogs;
+    }
+
+    public boolean isSaveLogs() {
+        return saveLogs;
+    }
 
     public String getMultiName() {
         return multiName;

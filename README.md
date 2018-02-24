@@ -5,6 +5,8 @@ Like [CGSpunk](https://github.com/danBhentschel/CGSpunk), except it's made in Ja
 ... and you can queue several codes to run big fat batches of games and compare results easily.
 
 ### Latest features :
+- You can pause/resume a running benchmark by pressing ENTER
+- Logs of every game are saved in a `logs` folder (can be disabled)
 - `playerPosition` now generates every starting positions configuration, according to player number (2 permutations in 1v1, 6 in 1v2 and 24 in 1v3). See comments in configuration file for detailed explanations.
 - CGBenchmark now supports 1vN games
 - You can now define a N enemies pool for each code configuration. Enemies will be picked randomly at each game (as well as their number, which will be a random value between `minEnemiesNumber` and `maxEnemiesNumber`). These random choices are deterministic, i.e. if you benchmark two codes with the same `enemies` configuration and a fixed seed list, each seed will be played against the same enemies every time.
@@ -125,6 +127,7 @@ The configuration uses the JSON format, and must contains the following items :
 
 ### Things that would be cool to have:
 
+ * Ability to PAUSE a benchmark
  * Bring back separated P1/P2 winrates for 1v1 games
  * ETA display
  * Reduce benchmark time with adaptive cooldown between games
