@@ -23,7 +23,7 @@ The tool requires JDK 1.8, and is built with Gradle, using the task `fatJar`.
 The result is a standalone jar.
 
 ### Run:
-`java -jar CGBenchmark.jar -c <path_to_your_json_configuration_file>`
+`java -jar CGBenchmark.jar -c <path_to_your_json_configuration_file> [-l]`
 
 ### Configure:
 Before you can run the tool, you must configure your CG account, code list and some other stuff.  
