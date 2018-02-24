@@ -1,21 +1,24 @@
 package fr.svivien.cgbenchmark.producerconsumer;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import fr.svivien.cgbenchmark.Constants;
 import fr.svivien.cgbenchmark.api.CGPlayApi;
 import fr.svivien.cgbenchmark.model.request.play.PlayRequest;
 import fr.svivien.cgbenchmark.model.request.play.PlayResponse;
+import fr.svivien.cgbenchmark.model.request.play.PlayResponse.Frame;
 import fr.svivien.cgbenchmark.model.test.ResultWrapper;
 import fr.svivien.cgbenchmark.model.test.TestInput;
 import fr.svivien.cgbenchmark.model.test.TestOutput;
 import okhttp3.OkHttpClient;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import retrofit2.Call;
 import retrofit2.GsonConverterFactory;
 import retrofit2.Retrofit;
-
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Consumes tests in the broker, runs them against CG API and stores the results in synchronized collection
@@ -87,6 +90,7 @@ public class Consumer implements Runnable {
         Call<PlayResponse> call = cgPlayApi.play(request, Constants.CG_HOST + "/ide/" + ide, cookie);
         try {
             PlayResponse playResponse = call.execute().body();
+            dumpLogForPlay(test, playResponse);
             return new TestOutput(test, playResponse);
         } catch (IOException | RuntimeException e) {
             TestOutput to = new TestOutput(test, null);
@@ -94,7 +98,42 @@ public class Consumer implements Runnable {
         }
     }
 
-    // DUMMY for test purpose
+    private void dumpLogForPlay(TestInput test, PlayResponse response) {
+    	if (response.success == null) {
+    		// Nothing to log
+    		return;
+    	}
+    	
+    	// gameId as filename
+    	final String fileName = "./result" + response.success.gameId + ".log";
+
+    	try (FileWriter fw = new FileWriter(fileName)) {
+    		for (int iframe = 0; iframe < response.success.frames.size(); iframe++) {
+    			Frame currentFrame = response.success.frames.get(iframe);
+    			
+    			// write stderr
+    			if (currentFrame.stderr != null) {
+    				fw.write("----- " + iframe +" / " + response.success.frames.size() + " -----\n");
+    				fw.write(currentFrame.stderr);
+    				fw.write("\n\n");
+    			}
+    			
+    			// write error if any
+    			if (currentFrame.error != null) {
+    				fw.write("----- " + iframe +" / " + response.success.frames.size() + " ----- ERROR ----- \n");
+    				fw.write("Line" + currentFrame.error.line +":\n");
+    				fw.write(currentFrame.error.message);
+    				fw.write("\n\n");
+    				
+    			}
+    		}
+    		fw.flush();
+    	} catch (IOException ex) {
+    		LOG.error("Unable to write log file for " + response.success.gameId , ex);
+		}
+	}
+
+	// DUMMY for test purpose
 //    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
 //        PlayResponse resp = new PlayResponse();
 //        resp.success = resp.new PlayResponseSuccess();

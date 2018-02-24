@@ -38,7 +38,7 @@ The configuration uses the JSON format, and must contains the following items :
       // Login of your account
       "accountLogin": "email@provider.com",
       // Password of your account
-      "accountPassword": "123password",
+      "accountPassword": "123password"
     }
   ],
 
