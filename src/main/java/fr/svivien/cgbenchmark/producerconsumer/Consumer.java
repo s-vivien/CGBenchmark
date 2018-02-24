@@ -3,6 +3,7 @@ package fr.svivien.cgbenchmark.producerconsumer;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,11 +40,14 @@ public class Consumer implements Runnable {
 
     private static final String outputFormat = "[ %10s ]%s";
 
-    public Consumer(String name, Broker broker, String cookie, String ide, int cooldown) {
+	private AtomicBoolean pause;
+
+    public Consumer(String name, Broker broker, String cookie, String ide, int cooldown, AtomicBoolean pause) {
         this.cookie = cookie;
         this.ide = ide;
         this.name = name;
         this.broker = broker;
+		this.pause = pause;
         this.client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
         this.retrofit = new Retrofit.Builder().client(client).baseUrl(Constants.CG_HOST).addConverterFactory(GsonConverterFactory.create()).build();
         this.cgPlayApi = retrofit.create(CGPlayApi.class);
@@ -75,8 +79,12 @@ public class Consumer implements Runnable {
                 }
 
                 if (broker.getTestSize() > 0) {
+                	shouldPause();
+                	
                     // The cooldown is applied on the start-time of each test, and not on the end-time of previous test
                     Thread.sleep(Math.max(100, cooldown * 1000 - (System.currentTimeMillis() - start)));
+                    
+                    shouldPause();
                 }
             }
             LOG.info("Consumer " + this.name + " finished its job.");
@@ -85,7 +93,21 @@ public class Consumer implements Runnable {
         }
     }
 
-    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
+    private void shouldPause() {
+    	if (pause.get()) {
+
+    		LOG.info(String.format(outputFormat, this.name, "-- paused --"));
+    		while (pause.get()) {
+    			try {
+    				Thread.sleep(1000);
+    			} catch (InterruptedException ex) {
+    				LOG.fatal("Consumer " + name + " has encountered an issue resuming from pause", ex);
+    			}
+    		}
+    	}
+    }
+
+	private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
         PlayRequest request = new PlayRequest(test.getCode(), test.getLang(), ide, test.getSeed(), test.getPlayers());
         Call<PlayResponse> call = cgPlayApi.play(request, Constants.CG_HOST + "/ide/" + ide, cookie);
         try {

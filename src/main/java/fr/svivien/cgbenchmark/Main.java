@@ -1,5 +1,7 @@
 package fr.svivien.cgbenchmark;
 
+import java.io.IOException;
+
 import org.apache.commons.cli.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -30,6 +32,38 @@ public class Main {
 
         String cfgPath = cmd.getOptionValue("c");
         CGBenchmark cgBenchmark = new CGBenchmark(cfgPath);
+        
+        pausable(cgBenchmark).start();
+        
         cgBenchmark.launch();
     }
+
+	private static Thread pausable(CGBenchmark cgBenchmark) {
+		final Thread pauseThread = new Thread(() -> {
+			while (true) {
+				System.err.println("Press enter to pause...");
+				waitForEnter();
+				System.err.println("Waiting for pause..");
+				cgBenchmark.pause();
+
+				System.err.println("Press enter to resume...");
+				waitForEnter();
+				System.err.println("Resuming benchmarks..");
+				cgBenchmark.resume();
+			}
+		}, "Wait for pause");
+		pauseThread.setDaemon(true);
+		return pauseThread;
+	}
+
+	private static void waitForEnter() {
+		try {
+			System.in.read();
+			while (System.in.available() > 0) {
+				System.in.read();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }
