@@ -127,7 +127,6 @@ The configuration uses the JSON format, and must contains the following items :
 
 ### Things that would be cool to have:
 
- * Ability to PAUSE a benchmark
  * Bring back separated P1/P2 winrates for 1v1 games
  * ETA display
  * Reduce benchmark time with adaptive cooldown between games
