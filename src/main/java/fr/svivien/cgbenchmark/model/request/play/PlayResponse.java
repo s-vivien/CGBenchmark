@@ -11,6 +11,7 @@ public class PlayResponse {
 
     public class Error {
         public int id;
+        public int line;
         public String type;
         public String message;
     }
@@ -18,6 +19,10 @@ public class PlayResponse {
     public class Frame {
         public int agentId;
         public String gameInformation;
+        public String summary;
+        public String stdout;
+        public String stderr;
+        public Error error;
     }
 
     public class PlayResponseSuccess {
