@@ -4,13 +4,11 @@ import fr.svivien.cgbenchmark.Constants;
 import fr.svivien.cgbenchmark.model.request.session.SessionRequest;
 import fr.svivien.cgbenchmark.model.request.session.SessionResponse;
 import retrofit2.Call;
-import retrofit2.http.Body;
-import retrofit2.http.Header;
-import retrofit2.http.Headers;
-import retrofit2.http.POST;
+import retrofit2.http.*;
 
 public interface SessionApi {
-    @POST("/services/PuzzleRemoteService/generateSessionFromPuzzlePrettyId")
+
+    @POST
     @Headers({
             "Host: www.codingame.com",
             "Connection: keep-alive",
@@ -22,5 +20,5 @@ public interface SessionApi {
             "Accept-Encoding: deflate",
             "Accept-Language: fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4",
     })
-    Call<SessionResponse> getSessionHandle(@Body SessionRequest body, @Header("Referer") String referer, @Header("Cookie") String userCookie);
+    Call<SessionResponse> getSessionHandle(@Url String serviceURI, @Body SessionRequest body, @Header("Referer") String referer, @Header("Cookie") String userCookie);
 }

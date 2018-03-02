@@ -5,6 +5,7 @@ Like [CGSpunk](https://github.com/danBhentschel/CGSpunk), except it's made in Ja
 ... and you can queue several codes to run big fat batches of games and compare results easily.
 
 ### Latest features :
+- Works during contests (new parameter `isContest` in the configuration file)
 - You can pause/resume a running benchmark by pressing ENTER
 - Logs of every game are saved in a `logs` folder (enable with `-l` parameter)
 - `playerPosition` now generates every starting positions configuration, according to player number (2 permutations in 1v1, 6 in 1v2 and 24 in 1v3). See comments in configuration file for detailed explanations.
@@ -49,6 +50,9 @@ The configuration uses the JSON format, and must contains the following items :
 
   // The name of the multiplayer game as it appears at the end of the url of your IDE
   "multiName": "wondev-woman",
+  
+  // Optional. Indicates if the game is a contest or not. FALSE if not provided
+  "isContest": "true",
   
   // List of seeds to play
   "seedList": [

@@ -13,6 +13,7 @@ public class GlobalConfiguration {
     private Integer maxEnemiesNumber;
     private List<CodeConfiguration> codeConfigurationList;
     private String multiName;
+    private Boolean isContest = false;
     private boolean saveLogs;
 
     public void setSaveLogs(boolean saveLogs) {
@@ -25,6 +26,10 @@ public class GlobalConfiguration {
 
     public String getMultiName() {
         return multiName;
+    }
+
+    public Boolean isContest() {
+        return isContest;
     }
 
     public List<AccountConfiguration> getAccountConfigurationList() {

@@ -67,7 +67,7 @@ public class CGBenchmark {
         LOG.info("Registering " + globalConfiguration.getAccountConfigurationList().size() + " account(s)");
         for (AccountConfiguration accountCfg : globalConfiguration.getAccountConfigurationList()) {
             try {
-                retrieveAccountCookieAndSession(accountCfg, globalConfiguration.getMultiName());
+                retrieveAccountCookieAndSession(accountCfg);
             } catch (IllegalStateException e) {
                 LOG.fatal("Error while retrieving account cookie and session", e);
                 System.exit(1);
@@ -143,7 +143,7 @@ public class CGBenchmark {
         LOG.info("No more tests. Ending.");
     }
 
-    private void retrieveAccountCookieAndSession(AccountConfiguration accountCfg, String multiName) {
+    private void retrieveAccountCookieAndSession(AccountConfiguration accountCfg) {
         LOG.info("Retrieving cookie and session for account " + accountCfg.getAccountName());
 
         OkHttpClient client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
@@ -179,18 +179,31 @@ public class CGBenchmark {
         // Setting the cookie in the account configuration
         accountCfg.setAccountCookie(optCookie.get().toString());
 
+        // Retrieving IDE handle
+        String handle = retrieveHandle(retrofit, loginResponse.body().success.userId, accountCfg.getAccountCookie());
+
+        // Setting the IDE session in the account configuration
+        accountCfg.setAccountIde(handle);
+    }
+
+    private String retrieveHandle(Retrofit retrofit, Integer userId, String accountCookie) {
         SessionApi sessionApi = retrofit.create(SessionApi.class);
-        SessionRequest sessionRequest = new SessionRequest(loginResponse.body().success.userId, multiName);
-        Call<SessionResponse> sessionCall = sessionApi.getSessionHandle(sessionRequest, Constants.CG_HOST + "/puzzle/" + multiName, accountCfg.getAccountCookie());
+        SessionRequest sessionRequest = new SessionRequest(userId, globalConfiguration.getMultiName(), globalConfiguration.isContest());
+        Call<SessionResponse> sessionCall;
+        sessionCall = sessionApi.getSessionHandle(globalConfiguration.isContest() ? Constants.CONTEST_SESSION_SERVICE_URL : Constants.PUZZLE_SESSION_SERVICE_URL, sessionRequest, Constants.CG_HOST, accountCookie);
+
         retrofit2.Response<SessionResponse> sessionResponse;
         try {
             sessionResponse = sessionCall.execute();
+            if (globalConfiguration.isContest()) {
+                return sessionResponse.body().success.testSessionHandle;
+            } else {
+                return sessionResponse.body().success.handle;
+            }
+
         } catch (IOException | RuntimeException e) {
             throw new IllegalStateException("Session request failed");
         }
-
-        // Setting the IDE session in the account configuration
-        accountCfg.setAccountIde(sessionResponse.body().success.handle);
     }
 
     private void createTests(CodeConfiguration codeCfg) throws IOException, InterruptedException {
