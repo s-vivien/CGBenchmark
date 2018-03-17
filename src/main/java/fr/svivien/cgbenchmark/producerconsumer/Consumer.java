@@ -186,7 +186,7 @@ public class Consumer implements Runnable {
 //        for (int i = 0; i < test.getPlayers().size(); i++) {
 //            resp.success.scores.add((int) (Math.random() * 10));
 //        }
-//        if (saveLogs) dumpLogForPlay(resp);
+//        if (saveLogs) dumpLogForPlay(test, resp);
 //        return new TestOutput(test, resp);
 //    }
 

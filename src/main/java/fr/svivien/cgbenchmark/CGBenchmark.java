@@ -124,8 +124,9 @@ public class CGBenchmark {
                         suffix++;
                         file = new File(reportFileName + "_" + suffix + ".txt");
                     } while (file.exists() && !file.isDirectory());
-                    reportFileName += "_" + suffix + ".txt";
+                    reportFileName += "_" + suffix;
                 }
+                reportFileName += ".txt";
 
                 LOG.info("Writing final report to : " + reportFileName);
                 try (PrintWriter out = new PrintWriter(reportFileName)) {
@@ -211,7 +212,7 @@ public class CGBenchmark {
 
         // Filling the broker with all the tests
         for (int replay = 0; replay < codeCfg.getNbReplays(); replay++) {
-            rnd.setSeed(28731L); /** More arbitrary values ... */
+            rnd.setSeed(2820027331L); /** More arbitrary values ... */
 
             if (globalConfiguration.getRandomSeed()) {
                 List<EnemyConfiguration> selectedPlayers = getRandomEnemies(codeCfg);
@@ -267,13 +268,29 @@ public class CGBenchmark {
     }
 
     private List<EnemyConfiguration> getRandomEnemies(CodeConfiguration codeCfg) {
-        List<EnemyConfiguration> selectedPlayers = codeCfg.getEnemies().stream().collect(Collectors.toList());
-        Collections.shuffle(selectedPlayers, rnd);
-        if (globalConfiguration.getEnemiesNumberDelta() > 0) {
-            return selectedPlayers.subList(0, globalConfiguration.getMinEnemiesNumber() + rnd.nextInt(globalConfiguration.getEnemiesNumberDelta() + 1));
-        } else {
-            return selectedPlayers.subList(0, globalConfiguration.getMinEnemiesNumber());
+        List<EnemyConfiguration> selectedPlayers = new ArrayList<>();
+
+        List<EnemyConfiguration> playerPool = codeCfg.getEnemies().stream().collect(Collectors.toList());
+        int pickSize = globalConfiguration.getMinEnemiesNumber() + rnd.nextInt(globalConfiguration.getEnemiesNumberDelta() + 1);
+
+        for (int i = 0; i < pickSize; i++) {
+            playerPool.stream().forEach(p -> p.setWeight(1D / (p.getPicked() + 1)));
+            double totalWeight = playerPool.stream().mapToDouble(EnemyConfiguration::getWeight).sum();
+            playerPool.sort((a, b) -> b.getWeight().compareTo(a.getWeight()));
+            double randomWeight = rnd.nextDouble() * totalWeight;
+            double sumWeight = 0;
+            for (EnemyConfiguration e : playerPool) {
+                sumWeight += e.getWeight();
+                if (sumWeight >= randomWeight) {
+                    e.incrementPicked();
+                    selectedPlayers.add(e);
+                    playerPool.remove(e);
+                    break;
+                }
+            }
         }
+
+        return selectedPlayers;
     }
 
     private void checkConfiguration(GlobalConfiguration globalConfiguration) throws IllegalArgumentException {
