@@ -18,7 +18,7 @@ public class ResultWrapper {
         int win, lose, draw, total;
     }
 
-    private static final String winrateOutputFormat = "%20s    %-10s %-10s %-14s %s";
+    private static final String winrateOutputFormat = "%20s    %-12s %-12s %-10s %-9s %s";
     private static final String positionsOutputFormat = "%25s    %-12s %-12s %-12s %-12s %s";
 
     private static final Log LOG = LogFactory.getLog(ResultWrapper.class);
@@ -111,7 +111,7 @@ public class ResultWrapper {
             lossrate = dom.lose != 0 ? (100.0 * ((double) dom.lose) / dom.total) : 0;
             drawrate = dom.draw != 0 ? (100.0 * ((double) dom.draw) / dom.total) : 0;
             winrateString += System.lineSeparator()
-                    + String.format(winrateOutputFormat, nickPerAgentId.get(entry.getKey()), "W=" + formatter.format(winrate) + "%", "L=" + formatter.format(lossrate) + "%", "D=" + formatter.format(drawrate) + "%", "[" + dom.total + "]");
+                    + String.format(winrateOutputFormat, nickPerAgentId.get(entry.getKey()), "GW=" + formatter.format(winrate + 0.5 * drawrate) + "%", "[ W=" + formatter.format(winrate) + "%", "L=" + formatter.format(lossrate) + "%", "D=" + formatter.format(drawrate) + "%", "] [" + dom.total + "]");
         }
 
         String[] winrates = new String[4];

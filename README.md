@@ -17,7 +17,7 @@ Allows you to queue batches of matches on any multiplayer game of CodinGame.
 Simulates PLAY in the IDE and gathers results.  
 You can add an unlimited number of source code in the configuration file, they'll be benchmarked one by one.  
 A .txt report file with global winrate and replay links will be produced for each of them.  
-Reports for a single code looks like [this](https://pastebin.com/ZunLVVzT)
+Reports for a single code looks like [this](https://pastebin.com/q7pDSAhW)
 
 ### Build:
 The tool requires JDK 1.8, and is built with Gradle, using the task `fatJar`.  

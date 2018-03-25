@@ -112,19 +112,6 @@ public class Consumer implements Runnable {
         }
     }
 
-    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
-        PlayRequest request = new PlayRequest(test.getCode(), test.getLang(), ide, test.getSeed(), test.getPlayers());
-        Call<PlayResponse> call = cgPlayApi.play(request, Constants.CG_HOST + "/ide/" + ide, cookie);
-        try {
-            PlayResponse playResponse = call.execute().body();
-            if (saveLogs) dumpLogForPlay(test, playResponse);
-            return new TestOutput(test, playResponse);
-        } catch (IOException | RuntimeException e) {
-            TestOutput to = new TestOutput(test, null);
-            return to;
-        }
-    }
-
     private void dumpLogForPlay(TestInput test, PlayResponse response) {
         if (response.success == null) {
             // Nothing to log
@@ -177,10 +164,24 @@ public class Consumer implements Runnable {
         }
     }
 
+    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
+        PlayRequest request = new PlayRequest(test.getCode(), test.getLang(), ide, test.getSeed(), test.getPlayers());
+        Call<PlayResponse> call = cgPlayApi.play(request, Constants.CG_HOST + "/ide/" + ide, cookie);
+        try {
+            PlayResponse playResponse = call.execute().body();
+            if (saveLogs) dumpLogForPlay(test, playResponse);
+            return new TestOutput(test, playResponse);
+        } catch (IOException | RuntimeException e) {
+            TestOutput to = new TestOutput(test, null);
+            return to;
+        }
+    }
+
     // DUMMY for test purpose
 //    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
 //        PlayResponse resp = new PlayResponse();
 //        resp.success = resp.new PlayResponseSuccess();
+//        resp.success.gameId = (long) (297629806 + Math.random() * 702370193);
 //        resp.success.frames = new ArrayList<>();
 //        resp.success.scores = new ArrayList<>();
 //        for (int i = 0; i < test.getPlayers().size(); i++) {
