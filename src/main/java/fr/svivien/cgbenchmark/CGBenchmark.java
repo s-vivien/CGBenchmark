@@ -209,11 +209,10 @@ public class CGBenchmark {
 
     private void createTests(CodeConfiguration codeCfg) throws IOException, InterruptedException {
         String codeContent = new String(Files.readAllBytes(Paths.get(codeCfg.getSourcePath())));
+        rnd.setSeed(2820027331L); /** More arbitrary values ... */
 
         // Filling the broker with all the tests
         for (int replay = 0; replay < codeCfg.getNbReplays(); replay++) {
-            rnd.setSeed(2820027331L); /** More arbitrary values ... */
-
             if (globalConfiguration.getRandomSeed()) {
                 List<EnemyConfiguration> selectedPlayers = getRandomEnemies(codeCfg);
                 int myStartingPosition = globalConfiguration.isSingleRandomStartPosition() ? rnd.nextInt(selectedPlayers.size() + 1) : globalConfiguration.getPlayerPosition();

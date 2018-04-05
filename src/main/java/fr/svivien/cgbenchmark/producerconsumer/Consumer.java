@@ -177,7 +177,7 @@ public class Consumer implements Runnable {
         }
     }
 
-    // DUMMY for test purpose
+////     DUMMY for test purpose
 //    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
 //        PlayResponse resp = new PlayResponse();
 //        resp.success = resp.new PlayResponseSuccess();
