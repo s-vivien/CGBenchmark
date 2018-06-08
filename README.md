@@ -5,6 +5,7 @@ Like [CGSpunk](https://github.com/danBhentschel/CGSpunk), except it's made in Ja
 ... and you can queue several codes to run big fat batches of games and compare results easily.
 
 ### Latest features :
+- Estimation of remaining benchmark time
 - Works during contests (new parameter `isContest` in the configuration file)
 - You can pause/resume a running benchmark by pressing ENTER
 - Logs of every game are saved in a `logs` folder (enable with `-l` parameter)
@@ -132,7 +133,6 @@ The configuration uses the JSON format, and must contains the following items :
 ### Things that would be cool to have:
 
  * Bring back separated P1/P2 winrates for 1v1 games
- * ETA display
  * Reduce benchmark time with adaptive cooldown between games
  * Error margin in stats
  * Early benchmark cut if winrate is too low (with a minimum a played matches)
