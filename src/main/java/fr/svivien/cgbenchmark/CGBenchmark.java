@@ -273,7 +273,7 @@ public class CGBenchmark {
         int pickSize = globalConfiguration.getMinEnemiesNumber() + rnd.nextInt(globalConfiguration.getEnemiesNumberDelta() + 1);
 
         for (int i = 0; i < pickSize; i++) {
-            playerPool.stream().forEach(p -> p.setWeight(1D / (p.getPicked() + 1)));
+            playerPool.stream().forEach(p -> p.setWeight(1D / Math.pow(p.getPicked() + 1, 3D)));
             double totalWeight = playerPool.stream().mapToDouble(EnemyConfiguration::getWeight).sum();
             playerPool.sort((a, b) -> b.getWeight().compareTo(a.getWeight()));
             double randomWeight = rnd.nextDouble() * totalWeight;
