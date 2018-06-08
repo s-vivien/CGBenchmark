@@ -86,11 +86,11 @@ public class CGBenchmark {
             Path p = Paths.get(codeCfg.getSourcePath());
             String codeName = p.getFileName().toString();
 
-            // Brand new resultWrapper for this test
-            ResultWrapper resultWrapper = new ResultWrapper(codeCfg);
-
             try {
                 createTests(codeCfg);
+
+                // Brand new resultWrapper for this test
+                ResultWrapper resultWrapper = new ResultWrapper(codeCfg, accountConsumerList, testBroker.getTestSize());
 
                 String logStr = "Launching " + testBroker.getTestSize() + " tests " + codeName + " against";
                 for (EnemyConfiguration ec : codeCfg.getEnemies()) {
@@ -100,7 +100,6 @@ public class CGBenchmark {
 
                 // Adding consumers in the thread-pool and wiring fresh new resultWrapper
                 for (Consumer consumer : accountConsumerList) {
-                    consumer.setResultWrapper(resultWrapper);
                     threadPool.execute(consumer);
                 }
 

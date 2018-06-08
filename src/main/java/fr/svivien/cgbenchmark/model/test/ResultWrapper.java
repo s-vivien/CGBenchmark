@@ -2,6 +2,7 @@ package fr.svivien.cgbenchmark.model.test;
 
 import fr.svivien.cgbenchmark.model.config.CodeConfiguration;
 import fr.svivien.cgbenchmark.model.config.EnemyConfiguration;
+import fr.svivien.cgbenchmark.producerconsumer.Consumer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -28,6 +29,8 @@ public class ResultWrapper {
     private List<TestOutput> results = Collections.synchronizedList(new ArrayList<>());
     private Map<Integer, String> nickPerAgentId = new HashMap<>();
     private Map<Integer, Dominance> dominances = new HashMap<>();
+    private List<Consumer> accountConsumerList;
+    private int totalTestNumber;
 
     /**
      * first dimension : player number
@@ -35,7 +38,12 @@ public class ResultWrapper {
      */
     private int[][] positions = new int[5][6];
 
-    public ResultWrapper(CodeConfiguration codeCfg) {
+    public ResultWrapper(CodeConfiguration codeCfg, List<Consumer> accountConsumerList, int totalTestNumber) {
+        this.totalTestNumber = totalTestNumber;
+        this.accountConsumerList = accountConsumerList;
+        for (Consumer consumer : this.accountConsumerList) {
+            consumer.setResultWrapper(this);
+        }
         for (EnemyConfiguration ec : codeCfg.getEnemies()) {
             nickPerAgentId.put(ec.getAgentId(), ec.getName());
         }
@@ -77,7 +85,7 @@ public class ResultWrapper {
 
         // Print temporary results every 6 matches
         if (results.size() % 6 == 0) {
-            LOG.info("Temporary results :" + getWinrateDetails());
+            LOG.info("Temporary results " + getTimeLeftEstimationDetails() + ":" + getWinrateDetails());
         }
     }
 
@@ -101,6 +109,25 @@ public class ResultWrapper {
         return formatter.format(globalWinrate).replace(",", ".");
     }
 
+    private String getTimeLeftEstimationDetails() {
+        double meanTestDuration = 0;
+        for (Consumer consumer : this.accountConsumerList) {
+            double consumerMeanTestDuration = consumer.getMeanTestDuration();
+            if (consumerMeanTestDuration != -1) {
+                meanTestDuration += consumerMeanTestDuration;
+            } else {
+                // Not enough stats to compute accurate stats
+                return "";
+            }
+        }
+
+        meanTestDuration /= this.accountConsumerList.size();
+        double timeLeft = meanTestDuration * (totalTestNumber - results.size());
+        timeLeft /= this.accountConsumerList.size();
+
+        return "(time left estimation : " + ((int) (timeLeft / (1000 * 60))) + " minutes) ";
+    }
+
     public String getWinrateDetails() {
         double winrate, lossrate, drawrate;
         String winrateString = "";
@@ -111,7 +138,8 @@ public class ResultWrapper {
             lossrate = dom.lose != 0 ? (100.0 * ((double) dom.lose) / dom.total) : 0;
             drawrate = dom.draw != 0 ? (100.0 * ((double) dom.draw) / dom.total) : 0;
             winrateString += System.lineSeparator()
-                    + String.format(winrateOutputFormat, nickPerAgentId.get(entry.getKey()), "GW=" + formatter.format(winrate + 0.5 * drawrate) + "%", "[ W=" + formatter.format(winrate) + "%", "L=" + formatter.format(lossrate) + "%", "D=" + formatter.format(drawrate) + "%", "] [" + dom.total + "]");
+                             + String.format(winrateOutputFormat, nickPerAgentId.get(entry.getKey()),
+                    "GW=" + formatter.format(winrate + 0.5 * drawrate) + "%", "[ W=" + formatter.format(winrate) + "%", "L=" + formatter.format(lossrate) + "%", "D=" + formatter.format(drawrate) + "%", "] [" + dom.total + "]");
         }
 
         String[] winrates = new String[4];
@@ -122,7 +150,8 @@ public class ResultWrapper {
                     double rate = positions[npl][i] != 0 ? 100.0 * (((double) positions[npl][i]) / positions[npl][0]) : 0;
                     winrates[i - 1] = i + ": " + formatter.format(rate) + "%";
                 }
-                winrateString += System.lineSeparator() + String.format(positionsOutputFormat, "Positions (" + npl + " players)", winrates[0], winrates[1], winrates[2], winrates[3], "(" + positions[npl][5] + " crash(es) on " + positions[npl][0] + " games)");
+                winrateString +=
+                        System.lineSeparator() + String.format(positionsOutputFormat, "Positions (" + npl + " players)", winrates[0], winrates[1], winrates[2], winrates[3], "(" + positions[npl][5] + " crash(es) on " + positions[npl][0] + " games)");
             }
         }
 

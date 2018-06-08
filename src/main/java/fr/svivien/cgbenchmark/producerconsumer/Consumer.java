@@ -41,6 +41,9 @@ public class Consumer implements Runnable {
     private String ide;
     private int cooldown;
     private boolean saveLogs;
+    private long globalStartTime = 0;
+    private long totalTestNumber = 0;
+    private long totalPauseDuration = 0;
 
     private static final String outputFormat = "[ %10s ]%s";
 
@@ -61,20 +64,22 @@ public class Consumer implements Runnable {
 
     @Override
     public void run() {
-        long start = -1;
         try {
+            globalStartTime = System.currentTimeMillis();
             while (true) {
                 // Retrieves next test in the broker
                 TestInput test = broker.getNextTest();
+                long tryStart = System.currentTimeMillis();
 
                 // No more tests in the broker
                 if (test == null) break;
 
                 for (int tries = 0; tries < 20; tries++) { /** Arbitrary value .. */
-                    start = System.currentTimeMillis();
+                    tryStart = System.currentTimeMillis();
                     TestOutput result = testCode(cgPlayApi, test);
                     LOG.info(String.format(outputFormat, this.name, result.getResultString()));
                     if (!result.isError()) {
+                        totalTestNumber++;
                         resultWrapper.addTestResult(result);
                         break;
                     } else {
@@ -87,7 +92,7 @@ public class Consumer implements Runnable {
                     shouldPause();
 
                     // The cooldown is applied on the start-time of each test, and not on the end-time of previous test
-                    Thread.sleep(Math.max(100, cooldown * 1000 - (System.currentTimeMillis() - start)));
+                    Thread.sleep(Math.max(100, cooldown * 1000 - (System.currentTimeMillis() - tryStart)));
 
                     shouldPause();
                 }
@@ -98,8 +103,15 @@ public class Consumer implements Runnable {
         }
     }
 
+    public double getMeanTestDuration() {
+        if (totalTestNumber == 0) return -1;
+        return ((double) ((System.currentTimeMillis() - globalStartTime) - totalPauseDuration) / (double) totalTestNumber);
+    }
+
     private void shouldPause() {
         if (pause.get()) {
+
+            long pauseStart = System.currentTimeMillis();
 
             LOG.info(String.format(outputFormat, this.name, " -- PAUSED --"));
             while (pause.get()) {
@@ -109,6 +121,8 @@ public class Consumer implements Runnable {
                     LOG.fatal("Consumer " + name + " has encountered an issue while resuming from pause", ex);
                 }
             }
+
+            totalPauseDuration += (System.currentTimeMillis() - pauseStart);
         }
     }
 
@@ -177,19 +191,19 @@ public class Consumer implements Runnable {
         }
     }
 
-////     DUMMY for test purpose
-//    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
-//        PlayResponse resp = new PlayResponse();
-//        resp.success = resp.new PlayResponseSuccess();
-//        resp.success.gameId = (long) (297629806 + Math.random() * 702370193);
-//        resp.success.frames = new ArrayList<>();
-//        resp.success.scores = new ArrayList<>();
-//        for (int i = 0; i < test.getPlayers().size(); i++) {
-//            resp.success.scores.add((int) (Math.random() * 10));
-//        }
-//        if (saveLogs) dumpLogForPlay(test, resp);
-//        return new TestOutput(test, resp);
-//    }
+    ////     DUMMY for test purpose
+    //    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
+    //        PlayResponse resp = new PlayResponse();
+    //        resp.success = resp.new PlayResponseSuccess();
+    //        resp.success.gameId = (long) (297629806 + Math.random() * 702370193);
+    //        resp.success.frames = new ArrayList<>();
+    //        resp.success.scores = new ArrayList<>();
+    //        for (int i = 0; i < test.getPlayers().size(); i++) {
+    //            resp.success.scores.add((int) (Math.random() * 10));
+    //        }
+    //        if (saveLogs) dumpLogForPlay(test, resp);
+    //        return new TestOutput(test, resp);
+    //    }
 
     public void setResultWrapper(ResultWrapper resultWrapper) {
         this.resultWrapper = resultWrapper;
