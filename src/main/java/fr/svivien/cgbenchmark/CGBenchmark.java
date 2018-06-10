@@ -91,6 +91,7 @@ public class CGBenchmark {
 
                 // Brand new resultWrapper for this test
                 ResultWrapper resultWrapper = new ResultWrapper(codeCfg, accountConsumerList, testBroker.getTestSize());
+                accountConsumerList.stream().forEach(Consumer::resetDurationStats);
 
                 String logStr = "Launching " + testBroker.getTestSize() + " tests " + codeName + " against";
                 for (EnemyConfiguration ec : codeCfg.getEnemies()) {

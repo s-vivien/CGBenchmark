@@ -103,6 +103,11 @@ public class Consumer implements Runnable {
         }
     }
 
+    public void resetDurationStats() {
+        totalTestNumber = 0;
+        totalPauseDuration = 0;
+    }
+
     public double getMeanTestDuration() {
         if (totalTestNumber == 0) return -1;
         return ((double) ((System.currentTimeMillis() - globalStartTime) - totalPauseDuration) / (double) totalTestNumber);
