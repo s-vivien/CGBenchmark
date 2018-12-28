@@ -90,7 +90,7 @@ public class CGBenchmark {
                 createTests(codeCfg);
 
                 // Brand new resultWrapper for this test
-                ResultWrapper resultWrapper = new ResultWrapper(codeCfg, accountConsumerList, testBroker.getTestSize());
+                ResultWrapper resultWrapper = new ResultWrapper(codeCfg, accountConsumerList, testBroker.getTestSize(), globalConfiguration.getMaxEnemiesNumber());
                 accountConsumerList.stream().forEach(Consumer::resetDurationStats);
 
                 String logStr = "Launching " + testBroker.getTestSize() + " tests " + codeName + " against";
@@ -218,7 +218,7 @@ public class CGBenchmark {
                 int myStartingPosition = globalConfiguration.isSingleRandomStartPosition() ? rnd.nextInt(selectedPlayers.size() + 1) : globalConfiguration.getPlayerPosition();
                 addTestFixedPosition(selectedPlayers, replay, null, codeContent, codeCfg.getLanguage(), myStartingPosition);
             } else {
-                for (int testNumber = 0; testNumber < globalConfiguration.getSeedList().size(); testNumber++) {
+                for (int testNumber = 0; testNumber < globalConfiguration.getSeedList().size() && testBroker.queue.size() < codeCfg.getCap(); testNumber++) {
                     List<EnemyConfiguration> selectedPlayers = getRandomEnemies(codeCfg);
                     String seed = SeedCleaner.cleanSeed(globalConfiguration.getSeedList().get(testNumber), globalConfiguration.getMultiName(), selectedPlayers.size() + 1);
                     if (globalConfiguration.isEveryPositionConfiguration()) {

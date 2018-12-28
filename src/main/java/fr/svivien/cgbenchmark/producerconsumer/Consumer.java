@@ -33,8 +33,6 @@ public class Consumer implements Runnable {
 
     private String name;
     private Broker broker;
-    private OkHttpClient client;
-    private Retrofit retrofit;
     private CGPlayApi cgPlayApi;
     private ResultWrapper resultWrapper;
     private String cookie;
@@ -55,8 +53,8 @@ public class Consumer implements Runnable {
         this.name = name;
         this.broker = broker;
         this.pause = pause;
-        this.client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
-        this.retrofit = new Retrofit.Builder().client(client).baseUrl(Constants.CG_HOST).addConverterFactory(GsonConverterFactory.create()).build();
+        OkHttpClient client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
+        Retrofit retrofit = new Retrofit.Builder().client(client).baseUrl(Constants.CG_HOST).addConverterFactory(GsonConverterFactory.create()).build();
         this.cgPlayApi = retrofit.create(CGPlayApi.class);
         this.cooldown = cooldown;
         this.saveLogs = saveLogs;
@@ -78,6 +76,7 @@ public class Consumer implements Runnable {
                     tryStart = System.currentTimeMillis();
                     TestOutput result = testCode(cgPlayApi, test);
                     LOG.info(String.format(outputFormat, this.name, result.getResultString()));
+                    resultWrapper.getDetailBuilder().append(String.format(outputFormat, this.name, result.getResultString()) + System.lineSeparator());
                     if (!result.isError()) {
                         totalTestNumber++;
                         resultWrapper.addTestResult(result);
@@ -148,12 +147,12 @@ public class Consumer implements Runnable {
 
             if (currentFrame.error != null) { // Error frame
                 logStringBuilder.append(logHeader);
-                logStringBuilder.append("ERROR at line " + currentFrame.error.line + ":" + System.lineSeparator());
+                logStringBuilder.append("ERROR at line ").append(currentFrame.error.line).append(":").append(System.lineSeparator());
                 logStringBuilder.append(currentFrame.error.message);
                 logStringBuilder.append(System.lineSeparator());
             } else if (currentFrame.gameInformation.contains(Constants.TIMEOUT_INFORMATION_PART)) { // Timeout frame
                 logStringBuilder.append(logHeader);
-                logStringBuilder.append(test.getPlayers().get(currentFrame.agentId).getName() + " TIMEOUT !");
+                logStringBuilder.append(test.getPlayers().get(currentFrame.agentId).getName()).append(" TIMEOUT !");
                 logStringBuilder.append(System.lineSeparator());
             } else if (currentFrame.stderr != null && test.getPlayers().get(currentFrame.agentId).getAgentId() == -1) { // Regular frame
                 logStringBuilder.append(logHeader);
@@ -191,18 +190,25 @@ public class Consumer implements Runnable {
             if (saveLogs) dumpLogForPlay(test, playResponse);
             return new TestOutput(test, playResponse);
         } catch (IOException | RuntimeException e) {
-            TestOutput to = new TestOutput(test, null);
-            return to;
+            return new TestOutput(test, null);
         }
     }
 
-    ////     DUMMY for test purpose
+    //    //     DUMMY for test purpose
     //    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
     //        PlayResponse resp = new PlayResponse();
     //        resp.success = resp.new PlayResponseSuccess();
     //        resp.success.gameId = (long) (297629806 + Math.random() * 702370193);
-    //        resp.success.frames = new ArrayList<>();
-    //        resp.success.scores = new ArrayList<>();
+    //        resp.success.frames = new java.util.ArrayList<>();
+    //        if (Math.random() < 0.05) { // Add random crash
+    //            for (int i = 0; i < test.getPlayers().size(); i++) {
+    //                Frame f = new Frame();
+    //                f.gameInformation = "This is timeout";
+    //                f.agentId = i;
+    //                resp.success.frames.add(f);
+    //            }
+    //        }
+    //        resp.success.scores = new java.util.ArrayList<>();
     //        for (int i = 0; i < test.getPlayers().size(); i++) {
     //            resp.success.scores.add((int) (Math.random() * 10));
     //        }

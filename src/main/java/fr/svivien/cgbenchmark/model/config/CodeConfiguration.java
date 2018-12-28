@@ -6,8 +6,13 @@ public class CodeConfiguration {
 
     private String sourcePath;
     private Integer nbReplays;
+    private Integer cap = 99999999;
     private String language;
     private List<EnemyConfiguration> enemies;
+
+    public Integer getCap() {
+        return cap;
+    }
 
     public List<EnemyConfiguration> getEnemies() {
         return enemies;

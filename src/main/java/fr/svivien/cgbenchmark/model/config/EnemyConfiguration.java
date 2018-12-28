@@ -11,11 +11,6 @@ public class EnemyConfiguration {
         this.name = name;
     }
 
-    public EnemyConfiguration(EnemyConfiguration other) {
-        this.agentId = other.agentId;
-        this.name = other.name;
-    }
-
     public Integer getAgentId() {
         return agentId;
     }
