@@ -33,7 +33,7 @@ public class TestOutput {
                 }
             }
             for (PlayResponse.Frame frame : response.success.frames) {
-                if (frame.agentId == myAgentIndex && (frame.gameInformation.toLowerCase().contains(Constants.TIMEOUT_INFORMATION_PART) || (frame.summary != null && frame.summary.toLowerCase().contains(Constants.TIMEOUT_INFORMATION_PART)))) {
+                if (frame.agentId == myAgentIndex && (frame.gameInformation.toLowerCase().contains(Constants.TIMEOUT_INFORMATION_PART) || (frame.summary != null && (frame.summary.toLowerCase().contains(Constants.TIMEOUT_INFORMATION_PART) || frame.summary.toLowerCase().contains(Constants.INVALID_INFORMATION_PART))))) {
                     this.crash = true;
                     break;
                 }
