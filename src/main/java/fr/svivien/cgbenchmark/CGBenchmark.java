@@ -166,19 +166,10 @@ public class CGBenchmark {
             throw new IllegalStateException("Login failed, please check login/pwd in configuration");
         }
 
-        // Selecting appropriate cookie; we keep the one that expires the later
-        Optional<Cookie> optCookie = loginResponse.headers().values(Constants.SET_COOKIE).stream()
-                .map(c -> Cookie.parse(HttpUrl.parse(Constants.CG_HOST), c))
-                .filter(c -> c.name().equals(Constants.REMCG) && c.expiresAt() > new Date().getTime())
-                .sorted((a, b) -> (int) (b.expiresAt() - a.expiresAt()))
-                .findFirst();
-
-        if (!optCookie.isPresent()) {
-            throw new IllegalStateException("Cannot find required cookie in getSessionHandle response");
-        }
-
+        String cookie = loginResponse.headers().values(Constants.SET_COOKIE).stream()
+                .collect(Collectors.joining("; "));
         // Setting the cookie in the account configuration
-        accountCfg.setAccountCookie(optCookie.get().toString());
+        accountCfg.setAccountCookie(cookie);
 
         // Retrieving IDE handle
         String handle = retrieveHandle(retrofit, loginResponse.body().success.userId, accountCfg.getAccountCookie());
