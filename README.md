@@ -4,15 +4,6 @@ Like [CGSpunk](https://github.com/danBhentschel/CGSpunk), except it's made in Ja
 ... and you don't need to have your browser open  
 ... and you can queue several codes to run big fat batches of games and compare results easily.
 
-### Latest features :
-- Estimation of remaining benchmark time
-- Works during contests (new parameter `isContest` in the configuration file)
-- You can pause/resume a running benchmark by pressing ENTER
-- Logs of every game are saved in a `logs` folder (enable with `-l` parameter)
-- `playerPosition` now generates every starting positions configuration, according to player number (2 permutations in 1v1, 6 in 1v2 and 24 in 1v3). See comments in configuration file for detailed explanations.
-- CGBenchmark now supports 1vN games
-- You can now define a N enemies pool for each code configuration. Enemies will be picked randomly at each game (as well as their number, which will be a random value between `minEnemiesNumber` and `maxEnemiesNumber`). These random choices are deterministic, i.e. if you benchmark two codes with the same `enemies` configuration and a fixed seed list, each seed will be played against the same enemies every time.
-
 ### What it does:
 Allows you to queue batches of matches on any multiplayer game of CodinGame.  
 Simulates PLAY in the IDE and gathers results.  
@@ -20,8 +11,12 @@ You can add an unlimited number of source code in the configuration file, they'l
 A .txt report file with global winrate and replay links will be produced for each of them.  
 Reports for a single code looks like [this](https://pastebin.com/q7pDSAhW)
 
+### Prerequisites
+The tool requires JRE 1.8 to run, and JDK 1.8 to build.
+You can grab the pre-compiled Jar in the [releases](https://github.com/s-vivien/CGBenchmark/releases) if you just want to use the tool as is.
+
 ### Build:
-The tool requires JDK 1.8, and is built with Gradle, using the task `fatJar` :
+The tool is built with Gradle, using the task `fatJar` :
 ```
 gradle fatJar
 ```
@@ -137,8 +132,16 @@ The configuration uses the JSON format, and must contains the following items :
 }
 ```
 
-### Things that would be cool to have:
+### Latest features :
+- Estimation of remaining benchmark time
+- Works during contests (new parameter `isContest` in the configuration file)
+- You can pause/resume a running benchmark by pressing ENTER
+- Logs of every game are saved in a `logs` folder (enable with `-l` parameter)
+- `playerPosition` now generates every starting positions configuration, according to player number (2 permutations in 1v1, 6 in 1v2 and 24 in 1v3). See comments in configuration file for detailed explanations.
+- CGBenchmark now supports 1vN games
+- You can now define a N enemies pool for each code configuration. Enemies will be picked randomly at each game (as well as their number, which will be a random value between `minEnemiesNumber` and `maxEnemiesNumber`). These random choices are deterministic, i.e. if you benchmark two codes with the same `enemies` configuration and a fixed seed list, each seed will be played against the same enemies every time.
 
+### Things that would be cool to have:
  * Proper global refactor
  * Bring back separated P1/P2 winrates for 1v1 games
  * Reduce benchmark time with adaptive cooldown between games
