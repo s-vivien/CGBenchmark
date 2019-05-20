@@ -24,16 +24,8 @@ public class TestOutput {
     public TestOutput(TestInput test, PlayResponse response) {
         // Checks if your AI crashed or not ..
         if (response != null && response.success != null) {
-            int myAgentIndex = -1;
-            for (int i = 0; i < test.getPlayers().size(); i++) {
-                EnemyConfiguration ec = test.getPlayers().get(i);
-                if (ec.getAgentId() == -1) {
-                    myAgentIndex = i;
-                    break;
-                }
-            }
             for (PlayResponse.Frame frame : response.success.frames) {
-                if (frame.agentId == myAgentIndex && (frame.gameInformation.toLowerCase().contains(Constants.TIMEOUT_INFORMATION_PART) || (frame.summary != null && (frame.summary.toLowerCase().contains(Constants.TIMEOUT_INFORMATION_PART) || frame.summary.toLowerCase().contains(Constants.INVALID_INFORMATION_PART))))) {
+                if (frame.gameInformation.toLowerCase().contains(Constants.TIMEOUT_INFORMATION_PART) || (frame.summary != null && (frame.summary.toLowerCase().contains(Constants.TIMEOUT_INFORMATION_PART)))) {
                     this.crash = true;
                     break;
                 }
