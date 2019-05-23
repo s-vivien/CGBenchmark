@@ -30,6 +30,14 @@ public class TestOutput {
                     break;
                 }
             }
+            if (response.success.tooltips != null) {
+                for (String tooltip : response.success.tooltips) {
+                    if (tooltip.toLowerCase().contains(Constants.TIMEOUT_INFORMATION_PART)) {
+                        this.crash = true;
+                        break;
+                    }
+                }
+            }
         }
 
         String resultMessage;

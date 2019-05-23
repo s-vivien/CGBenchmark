@@ -1,5 +1,6 @@
 package fr.svivien.cgbenchmark.model.request.play;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,6 +29,7 @@ public class PlayResponse {
     public class PlayResponseSuccess {
         public List<Integer> scores;
         public List<Frame> frames;
+        public List<String> tooltips;
         public long gameId;
     }
 }
