@@ -105,25 +105,6 @@ public class ResultWrapper {
         return formatter.format(gwinrate).replace(",", ".");
     }
 
-    private String getTimeLeftEstimationDetails() {
-        double meanTestDuration = 0;
-        for (Consumer consumer : this.accountConsumerList) {
-            double consumerMeanTestDuration = consumer.getMeanTestDuration();
-            if (consumerMeanTestDuration != -1) {
-                meanTestDuration += consumerMeanTestDuration;
-            } else {
-                // Not enough stats to compute accurate stats
-                return "";
-            }
-        }
-
-        meanTestDuration /= this.accountConsumerList.size();
-        double timeLeft = meanTestDuration * (totalTestNumber - results.size());
-        timeLeft /= this.accountConsumerList.size();
-
-        return "(time left estimation : " + ((int) (timeLeft / (1000 * 60))) + " minutes) ";
-    }
-
     public String getWinrateDetails() {
         double winrate, lossrate, drawrate;
         int gtotal = 0, gwin = 0, gdraw = 0, glose = 0;
@@ -149,7 +130,7 @@ public class ResultWrapper {
 
         winrateString += System.lineSeparator() + String.format(winrateOutputFormat, "-- TOTAL --",
                 "GW=" + formatter.format(gwinrate) + "%",
-                "[ W=" + formatter.format(winrate) + "%", "L=" + formatter.format(lossrate) + "%", "D=" + formatter.format(drawrate) + "%", "] [" + gtotal + " games]" + (crashes > 0 ? " [" + crashes + " crash(es)]" : ""));
+                "[ W=" + formatter.format(winrate) + "%", "L=" + formatter.format(lossrate) + "%", "D=" + formatter.format(drawrate) + "%", "] [" + getPlayedGamesTotal() + " games]" + (crashes > 0 ? " [" + crashes + " crash(es)]" : ""));
 
         if (maxEnemies > 1) {
             String[] winrates = new String[4];
@@ -166,6 +147,31 @@ public class ResultWrapper {
         }
 
         return winrateString;
+    }
+
+    private int getPlayedGamesTotal() {
+        int n = 0;
+        for (int npl = 2; npl <= 4; npl++) n += positions[npl][0];
+        return n;
+    }
+
+    private String getTimeLeftEstimationDetails() {
+        double meanTestDuration = 0;
+        for (Consumer consumer : this.accountConsumerList) {
+            double consumerMeanTestDuration = consumer.getMeanTestDuration();
+            if (consumerMeanTestDuration != -1) {
+                meanTestDuration += consumerMeanTestDuration;
+            } else {
+                // Not enough stats to compute accurate stats
+                return "";
+            }
+        }
+
+        meanTestDuration /= this.accountConsumerList.size();
+        double timeLeft = meanTestDuration * (totalTestNumber - results.size());
+        timeLeft /= this.accountConsumerList.size();
+
+        return "(ETA : " + ((int) (timeLeft / (1000 * 60))) + " minutes) ";
     }
 
     public StringBuilder getReportBuilder() {
