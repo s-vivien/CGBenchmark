@@ -1,9 +1,7 @@
 package fr.svivien.cgbenchmark;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.stream.JsonReader;
 import fr.svivien.cgbenchmark.api.LoginApi;
 import fr.svivien.cgbenchmark.api.SessionApi;
 import fr.svivien.cgbenchmark.model.config.AccountConfiguration;
@@ -18,20 +16,22 @@ import fr.svivien.cgbenchmark.model.test.ResultWrapper;
 import fr.svivien.cgbenchmark.model.test.TestInput;
 import fr.svivien.cgbenchmark.producerconsumer.Broker;
 import fr.svivien.cgbenchmark.producerconsumer.Consumer;
-import okhttp3.Cookie;
-import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 import retrofit2.Call;
-import retrofit2.GsonConverterFactory;
 import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -55,7 +55,7 @@ public class CGBenchmark {
             globalConfiguration = parseConfigurationFile(cfgFilePath);
             globalConfiguration.setSaveLogs(saveLogs);
             checkConfiguration(globalConfiguration);
-        } catch (UnsupportedEncodingException | FileNotFoundException | JsonIOException | JsonSyntaxException e) {
+        } catch (FileNotFoundException | JsonIOException | JsonSyntaxException e) {
             LOG.fatal("Failed to parse configuration file", e);
             System.exit(1);
         } catch (IllegalArgumentException e) {
@@ -180,14 +180,14 @@ public class CGBenchmark {
 
     private String retrieveHandle(Retrofit retrofit, Integer userId, String accountCookie) {
         SessionApi sessionApi = retrofit.create(SessionApi.class);
-        SessionRequest sessionRequest = new SessionRequest(userId, globalConfiguration.getMultiName(), globalConfiguration.isContest());
+        SessionRequest sessionRequest = new SessionRequest(userId, globalConfiguration.getMultiName(), globalConfiguration.getIsContest());
         Call<SessionResponse> sessionCall;
-        sessionCall = sessionApi.getSessionHandle(globalConfiguration.isContest() ? Constants.CONTEST_SESSION_SERVICE_URL : Constants.PUZZLE_SESSION_SERVICE_URL, sessionRequest, Constants.CG_HOST, accountCookie);
+        sessionCall = sessionApi.getSessionHandle(globalConfiguration.getIsContest() ? Constants.CONTEST_SESSION_SERVICE_URL : Constants.PUZZLE_SESSION_SERVICE_URL, sessionRequest, Constants.CG_HOST, accountCookie);
 
         retrofit2.Response<SessionResponse> sessionResponse;
         try {
             sessionResponse = sessionCall.execute();
-            if (globalConfiguration.isContest()) {
+            if (globalConfiguration.getIsContest()) {
                 return sessionResponse.body().success.testSessionHandle;
             } else {
                 return sessionResponse.body().success.handle;
@@ -327,12 +327,11 @@ public class CGBenchmark {
         }
     }
 
-    private GlobalConfiguration parseConfigurationFile(String cfgFilePath) throws UnsupportedEncodingException, FileNotFoundException {
+    private GlobalConfiguration parseConfigurationFile(String cfgFilePath) throws FileNotFoundException {
         LOG.info("Loading configuration file : " + cfgFilePath);
-        Gson gson = new Gson();
+        Yaml yaml = new Yaml(new Constructor(GlobalConfiguration.class));
         FileInputStream configFileInputStream = new FileInputStream(cfgFilePath);
-        JsonReader reader = new JsonReader(new InputStreamReader(configFileInputStream, "UTF-8"));
-        return gson.fromJson(reader, GlobalConfiguration.class);
+        return yaml.load(configFileInputStream);
     }
 
     public void pause() {
