@@ -113,7 +113,6 @@ codeConfigurationList:
 
 ### Things that would be cool to have:
  * Unit tests ...
- * Proper global refactor
  * Bring back separated P1/P2 winrates for 1v1 games
  * Reduce benchmark time with adaptive cooldown between games
  * Error margin in stats

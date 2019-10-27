@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
  */
 public class PlayRequest extends ArrayList<Object> {
 
-    public Data data;
+    private Data data;
 
     public PlayRequest(String code, String lang, String ide, String gameOptions, List<EnemyConfiguration> enemies) {
         add(ide);
@@ -26,13 +26,13 @@ public class PlayRequest extends ArrayList<Object> {
     }
 
     public class Data {
-        public String code;
-        public String programmingLanguageId;
-        public Multi multi;
+        String code;
+        String programmingLanguageId;
+        Multi multi;
     }
 
     public class Multi {
-        public List<Integer> agentsIds = new ArrayList<>();
+        List<Integer> agentsIds = new ArrayList<>();
         String gameOptions;
     }
 }

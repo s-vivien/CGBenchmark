@@ -1,8 +1,8 @@
 package fr.svivien.cgbenchmark.api;
 
-import fr.svivien.cgbenchmark.Constants;
 import fr.svivien.cgbenchmark.model.request.play.PlayRequest;
 import fr.svivien.cgbenchmark.model.request.play.PlayResponse;
+import fr.svivien.cgbenchmark.utils.Constants;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.Header;

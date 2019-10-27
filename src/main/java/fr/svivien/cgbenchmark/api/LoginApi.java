@@ -1,8 +1,8 @@
 package fr.svivien.cgbenchmark.api;
 
-import fr.svivien.cgbenchmark.Constants;
 import fr.svivien.cgbenchmark.model.request.login.LoginRequest;
 import fr.svivien.cgbenchmark.model.request.login.LoginResponse;
+import fr.svivien.cgbenchmark.utils.Constants;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.Headers;

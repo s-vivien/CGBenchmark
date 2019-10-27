@@ -1,7 +1,8 @@
 apply plugin: 'java'
 
 sourceCompatibility = 1.8
-version = '1.0.4'
+targetCompatibility = 1.8
+version = '1.0.5'
 
 repositories {
     mavenCentral()
@@ -13,7 +14,6 @@ task fatJar(type: Jar) {
                 'Implementation-Version': version,
                 'Main-Class': 'fr.svivien.cgbenchmark.Main'
     }
-    baseName = project.name + '-all'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
@@ -27,4 +27,5 @@ dependencies {
     compile 'com.squareup.retrofit2:converter-gson:2.6.2'
     compile 'org.yaml:snakeyaml:1.25'
     compile 'org.projectlombok:lombok:1.18.10'
+    annotationProcessor 'org.projectlombok:lombok:1.18.10'
 }

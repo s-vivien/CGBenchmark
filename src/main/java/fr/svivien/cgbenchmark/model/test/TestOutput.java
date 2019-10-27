@@ -1,8 +1,9 @@
 package fr.svivien.cgbenchmark.model.test;
 
-import fr.svivien.cgbenchmark.Constants;
 import fr.svivien.cgbenchmark.model.config.EnemyConfiguration;
 import fr.svivien.cgbenchmark.model.request.play.PlayResponse;
+import fr.svivien.cgbenchmark.utils.Constants;
+import lombok.Data;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,6 +13,7 @@ import java.util.Map;
 /**
  * Test result data
  */
+@Data
 public class TestOutput {
 
     private boolean crash;
@@ -19,9 +21,9 @@ public class TestOutput {
     private String resultString;
     private Map<Integer, Integer> rankPerAgentId = new HashMap<>();
 
-    private static final String outputFormat = "[ %8s ] %s";
+    private static final String outputFormat = "[ %10s ][ %8s ] %s%s";
 
-    public TestOutput(TestInput test, PlayResponse response) {
+    public TestOutput(TestInput test, String consumerName, PlayResponse response) {
         // Checks if your AI crashed or not ..
         if (response != null && response.success != null) {
             for (PlayResponse.Frame frame : response.success.frames) {
@@ -80,22 +82,6 @@ public class TestOutput {
             }
         }
 
-        this.resultString = String.format(outputFormat, "SEED " + test.getSeedNumber(), resultMessage + (crash ? " (CRASH)" : ""));
-    }
-
-    public boolean isError() {
-        return error;
-    }
-
-    public boolean isCrash() {
-        return crash;
-    }
-
-    public String getResultString() {
-        return resultString;
-    }
-
-    public Map<Integer, Integer> getRankPerAgentId() {
-        return rankPerAgentId;
+        this.resultString = String.format(outputFormat, consumerName, "SEED " + test.getSeedNumber(), resultMessage, (crash ? " (CRASH)" : ""));
     }
 }

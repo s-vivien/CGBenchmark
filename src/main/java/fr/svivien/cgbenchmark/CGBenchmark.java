@@ -4,6 +4,9 @@ import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
 import fr.svivien.cgbenchmark.api.LoginApi;
 import fr.svivien.cgbenchmark.api.SessionApi;
+import fr.svivien.cgbenchmark.business.Consumer;
+import fr.svivien.cgbenchmark.business.TestBroker;
+import fr.svivien.cgbenchmark.business.result.ResultWrapper;
 import fr.svivien.cgbenchmark.model.config.AccountConfiguration;
 import fr.svivien.cgbenchmark.model.config.CodeConfiguration;
 import fr.svivien.cgbenchmark.model.config.EnemyConfiguration;
@@ -12,10 +15,9 @@ import fr.svivien.cgbenchmark.model.request.login.LoginRequest;
 import fr.svivien.cgbenchmark.model.request.login.LoginResponse;
 import fr.svivien.cgbenchmark.model.request.session.SessionRequest;
 import fr.svivien.cgbenchmark.model.request.session.SessionResponse;
-import fr.svivien.cgbenchmark.model.test.ResultWrapper;
 import fr.svivien.cgbenchmark.model.test.TestInput;
-import fr.svivien.cgbenchmark.producerconsumer.Broker;
-import fr.svivien.cgbenchmark.producerconsumer.Consumer;
+import fr.svivien.cgbenchmark.utils.Constants;
+import fr.svivien.cgbenchmark.utils.SeedCleaner;
 import okhttp3.OkHttpClient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,18 +38,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 public class CGBenchmark {
 
     private static final Log LOG = LogFactory.getLog(CGBenchmark.class);
 
     private GlobalConfiguration globalConfiguration = null;
-    private List<Consumer> accountConsumerList = new ArrayList<>();
-    private Broker testBroker = new Broker();
-    private Random rnd = new Random();
-    private EnemyConfiguration me = new EnemyConfiguration(-1, "[ME]");
-    private AtomicBoolean pause = new AtomicBoolean(false);
+    private final List<Consumer> consumers = new ArrayList<>();
+    private final TestBroker testBroker = new TestBroker();
+    private final Random rnd = new Random();
+    private final EnemyConfiguration me = new EnemyConfiguration(-1, "[ME]");
+    private final AtomicBoolean pause = new AtomicBoolean(false);
 
     public CGBenchmark(String cfgFilePath, boolean saveLogs) {
         // Parsing configuration file
@@ -72,7 +73,7 @@ public class CGBenchmark {
                 LOG.fatal("Error while retrieving account cookie and session", e);
                 System.exit(1);
             }
-            accountConsumerList.add(new Consumer(accountCfg.getAccountName(), testBroker, accountCfg.getAccountCookie(), accountCfg.getAccountIde(), globalConfiguration.getRequestCooldown(), pause, globalConfiguration.isSaveLogs()));
+            consumers.add(new Consumer(testBroker, accountCfg, globalConfiguration.getRequestCooldown(), pause, globalConfiguration.isSaveLogs()));
             LOG.info("Account " + accountCfg.getAccountName() + " successfully registered");
         }
     }
@@ -81,67 +82,80 @@ public class CGBenchmark {
         // Launching tests
         for (CodeConfiguration codeCfg : globalConfiguration.getCodeConfigurationList()) {
 
-            ExecutorService threadPool = Executors.newFixedThreadPool(accountConsumerList.size());
+            ExecutorService threadPool = Executors.newFixedThreadPool(consumers.size());
+
+            String codeContent = null;
+            try {
+                codeContent = new String(Files.readAllBytes(Paths.get(codeCfg.getSourcePath())));
+            } catch (IOException e) {
+                LOG.error("An error has occurred while reading source code for " + codeCfg.getSourcePath(), e);
+            }
+
+            testBroker.reset();
+            testBroker.setCodeContent(codeContent);
+            testBroker.setCodeLanguage(codeCfg.getLanguage());
+
+            createTests(codeCfg);
 
             Path p = Paths.get(codeCfg.getSourcePath());
             String codeName = p.getFileName().toString();
+            String logStr = "Launching " + testBroker.size() + " tests " + codeName + " against";
+            for (EnemyConfiguration ec : codeCfg.getEnemies()) {
+                logStr += " " + ec.getName() + "_" + ec.getAgentId();
+            }
+            LOG.info(logStr);
+
+            // Brand new resultWrapper for this test
+            ResultWrapper resultWrapper = new ResultWrapper(codeCfg, consumers, testBroker.size(), globalConfiguration.getMaxEnemiesNumber());
+
+            // Adding consumers in the thread-pool
+            for (Consumer consumer : consumers) {
+                consumer.resetDurationStats();
+                consumer.setResultWrapper(resultWrapper);
+                threadPool.execute(consumer);
+            }
 
             try {
-                createTests(codeCfg);
-
-                // Brand new resultWrapper for this test
-                ResultWrapper resultWrapper = new ResultWrapper(codeCfg, accountConsumerList, testBroker.getTestSize(), globalConfiguration.getMaxEnemiesNumber());
-                accountConsumerList.stream().forEach(Consumer::resetDurationStats);
-
-                String logStr = "Launching " + testBroker.getTestSize() + " tests " + codeName + " against";
-                for (EnemyConfiguration ec : codeCfg.getEnemies()) {
-                    logStr += " " + ec.getName() + "_" + ec.getAgentId();
-                }
-                LOG.info(logStr);
-
-                // Adding consumers in the thread-pool and wiring fresh new resultWrapper
-                for (Consumer consumer : accountConsumerList) {
-                    threadPool.execute(consumer);
-                }
-
                 // Unleash the executor
                 threadPool.shutdown();
                 threadPool.awaitTermination(5, TimeUnit.DAYS); // If 5 days is not enough, you're doing it wrong
-
-                LOG.info("Final results :" + resultWrapper.getWinrateDetails());
-
-                // Complete the report with all the results and final winrate
-                resultWrapper.finishReport();
-
-                // Write report to external file
-                String reportFileName = codeName + "-" + resultWrapper.getShortFilenameWinrate();
-
-                // Add suffix to avoid overwriting existing report file
-                File file = new File(reportFileName + ".txt");
-                if (file.exists() && !file.isDirectory()) {
-                    int suffix = -1;
-                    do {
-                        suffix++;
-                        file = new File(reportFileName + "_" + suffix + ".txt");
-                    } while (file.exists() && !file.isDirectory());
-                    reportFileName += "_" + suffix;
-                }
-                reportFileName += ".txt";
-
-                LOG.info("Writing final report to : " + reportFileName);
-                try (PrintWriter out = new PrintWriter(reportFileName)) {
-                    out.println(resultWrapper.getReportBuilder().toString());
-                } catch (Exception e) {
-                    LOG.warn("An error has occurred when writing final report", e);
-                }
-            } catch (IOException e) {
-                LOG.error("An error has occurred while reading source for " + codeCfg.getSourcePath(), e);
             } catch (InterruptedException e) {
                 LOG.error("An error has occurred within the broker/executor", e);
+            }
+
+            LOG.info("Final results :" + resultWrapper.getWinrateDetails());
+
+            // Complete the report with all the results and final winrate
+            resultWrapper.finishReport();
+
+            // Write report to external file
+            String reportFileName = computeReportFileName(codeName, resultWrapper);
+
+            LOG.info("Writing final report to : " + reportFileName);
+            try (PrintWriter out = new PrintWriter(reportFileName)) {
+                out.println(resultWrapper.getReportBuilder().toString());
+            } catch (Exception e) {
+                LOG.warn("An error has occurred when writing final report", e);
             }
         }
 
         LOG.info("No more tests. Ending.");
+    }
+
+    private String computeReportFileName(String codeName, ResultWrapper resultWrapper) {
+        String reportFileName = codeName + "-" + resultWrapper.getShortFilenameWinrate();
+        // Add suffix to avoid overwriting existing report file
+        File file = new File(reportFileName + ".txt");
+        if (file.exists() && !file.isDirectory()) {
+            int suffix = -1;
+            do {
+                suffix++;
+                file = new File(reportFileName + "_" + suffix + ".txt");
+            } while (file.exists() && !file.isDirectory());
+            reportFileName += "_" + suffix;
+        }
+        reportFileName += ".txt";
+        return reportFileName;
     }
 
     private void retrieveAccountCookieAndSession(AccountConfiguration accountCfg) {
@@ -162,12 +176,11 @@ public class CGBenchmark {
             throw new IllegalStateException("Login request failed");
         }
 
-        if (loginResponse.body().success == null || loginResponse.body().success.userId == null) {
+        if (loginResponse.body() == null || loginResponse.body().success == null || loginResponse.body().success.userId == null) {
             throw new IllegalStateException("Login failed, please check login/pwd in configuration");
         }
 
-        String cookie = loginResponse.headers().values(Constants.SET_COOKIE).stream()
-                .collect(Collectors.joining("; "));
+        String cookie = String.join("; ", loginResponse.headers().values(Constants.SET_COOKIE));
         // Setting the cookie in the account configuration
         accountCfg.setAccountCookie(cookie);
 
@@ -187,55 +200,56 @@ public class CGBenchmark {
         retrofit2.Response<SessionResponse> sessionResponse;
         try {
             sessionResponse = sessionCall.execute();
+            if (sessionResponse.body() == null) {
+                throw new IllegalStateException("Session request failed");
+            }
             if (globalConfiguration.getIsContest()) {
                 return sessionResponse.body().success.testSessionHandle;
             } else {
                 return sessionResponse.body().success.handle;
             }
-
-        } catch (IOException | RuntimeException e) {
-            throw new IllegalStateException("Session request failed");
+        } catch (IOException e) {
+            throw new IllegalStateException("Error while retrieving session handle", e);
         }
     }
 
-    private void createTests(CodeConfiguration codeCfg) throws IOException, InterruptedException {
-        String codeContent = new String(Files.readAllBytes(Paths.get(codeCfg.getSourcePath())));
-        rnd.setSeed(2820027331L); /** More arbitrary values ... */
+    private void createTests(CodeConfiguration codeCfg) {
+        rnd.setSeed(Constants.RANDOM_SEED);
 
         // Filling the broker with all the tests
         for (int replay = 0; replay < codeCfg.getNbReplays(); replay++) {
             if (globalConfiguration.getRandomSeed()) {
                 List<EnemyConfiguration> selectedPlayers = getRandomEnemies(codeCfg);
                 int myStartingPosition = globalConfiguration.isSingleRandomStartPosition() ? rnd.nextInt(selectedPlayers.size() + 1) : globalConfiguration.getPlayerPosition();
-                addTestFixedPosition(selectedPlayers, replay, null, codeContent, codeCfg.getLanguage(), myStartingPosition);
+                addTestFixedPosition(selectedPlayers, replay, null, myStartingPosition);
             } else {
-                for (int testNumber = 0; testNumber < globalConfiguration.getSeedList().size() && testBroker.queue.size() < codeCfg.getCap(); testNumber++) {
+                for (int testNumber = 0; testNumber < globalConfiguration.getSeedList().size() && testBroker.size() < codeCfg.getCap(); testNumber++) {
                     List<EnemyConfiguration> selectedPlayers = getRandomEnemies(codeCfg);
                     String seed = SeedCleaner.cleanSeed(globalConfiguration.getSeedList().get(testNumber), globalConfiguration.getMultiName(), selectedPlayers.size() + 1);
                     if (globalConfiguration.isEveryPositionConfiguration()) {
-                        addTestAllPermutations(selectedPlayers, testNumber, seed, codeContent, codeCfg.getLanguage());
+                        addTestAllPermutations(selectedPlayers, testNumber, seed);
                     } else {
                         int myStartingPosition = globalConfiguration.isSingleRandomStartPosition() ? rnd.nextInt(selectedPlayers.size() + 1) : globalConfiguration.getPlayerPosition();
-                        addTestFixedPosition(selectedPlayers, testNumber, seed, codeContent, codeCfg.getLanguage(), myStartingPosition);
+                        addTestFixedPosition(selectedPlayers, testNumber, seed, myStartingPosition);
                     }
                 }
             }
         }
     }
 
-    private void addTestAllPermutations(List<EnemyConfiguration> selectedPlayers, int seedNumber, String seed, String codeContent, String lang) throws InterruptedException {
-        List<EnemyConfiguration> players = selectedPlayers.stream().collect(Collectors.toList());
+    private void addTestAllPermutations(List<EnemyConfiguration> selectedPlayers, int seedNumber, String seed) {
+        List<EnemyConfiguration> players = new ArrayList<>(selectedPlayers);
         players.add(me);
         List<List<EnemyConfiguration>> permutations = generatePermutations(players);
         for (List<EnemyConfiguration> permutation : permutations) {
-            testBroker.queue.put(new TestInput(seedNumber, seed, codeContent, lang, permutation));
+            testBroker.addTest(new TestInput(seedNumber, seed, permutation));
         }
     }
 
-    private void addTestFixedPosition(List<EnemyConfiguration> selectedPlayers, int seedNumber, String seed, String codeContent, String lang, int myStartingPosition) throws InterruptedException {
-        List<EnemyConfiguration> players = selectedPlayers.stream().collect(Collectors.toList());
+    private void addTestFixedPosition(List<EnemyConfiguration> selectedPlayers, int seedNumber, String seed, int myStartingPosition) {
+        List<EnemyConfiguration> players = new ArrayList<>(selectedPlayers);
         players.add(myStartingPosition, me);
-        testBroker.queue.put(new TestInput(seedNumber, seed, codeContent, lang, players));
+        testBroker.addTest(new TestInput(seedNumber, seed, players));
     }
 
     private List<List<EnemyConfiguration>> generatePermutations(List<EnemyConfiguration> original) {
@@ -260,7 +274,7 @@ public class CGBenchmark {
     private List<EnemyConfiguration> getRandomEnemies(CodeConfiguration codeCfg) {
         List<EnemyConfiguration> selectedPlayers = new ArrayList<>();
 
-        List<EnemyConfiguration> playerPool = codeCfg.getEnemies().stream().collect(Collectors.toList());
+        List<EnemyConfiguration> playerPool = new ArrayList<>(codeCfg.getEnemies());
         int pickSize = globalConfiguration.getMinEnemiesNumber() + rnd.nextInt(globalConfiguration.getEnemiesNumberDelta() + 1);
 
         for (int i = 0; i < pickSize; i++) {
@@ -334,11 +348,11 @@ public class CGBenchmark {
         return yaml.load(configFileInputStream);
     }
 
-    public void pause() {
+    void pause() {
         this.pause.set(true);
     }
 
-    public void resume() {
+    void resume() {
         this.pause.set(false);
     }
 

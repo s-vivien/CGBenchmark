@@ -1,4 +1,4 @@
-package fr.svivien.cgbenchmark;
+package fr.svivien.cgbenchmark.utils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
  */
 public class SeedCleaner {
 
-    private static Map<String, Pattern> patterns;
+    private final static Map<String, Pattern> patterns;
 
     static {
         patterns = new HashMap<>();

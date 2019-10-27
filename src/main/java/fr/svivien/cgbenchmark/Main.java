@@ -63,7 +63,7 @@ public class Main {
                 System.in.read();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("Error while waiting for user input", e);
         }
     }
 }

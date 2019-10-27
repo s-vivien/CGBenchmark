@@ -1,13 +1,15 @@
-package fr.svivien.cgbenchmark.producerconsumer;
+package fr.svivien.cgbenchmark.business;
 
-import fr.svivien.cgbenchmark.Constants;
 import fr.svivien.cgbenchmark.api.CGPlayApi;
+import fr.svivien.cgbenchmark.business.result.ResultWrapper;
+import fr.svivien.cgbenchmark.model.config.AccountConfiguration;
 import fr.svivien.cgbenchmark.model.request.play.PlayRequest;
 import fr.svivien.cgbenchmark.model.request.play.PlayResponse;
 import fr.svivien.cgbenchmark.model.request.play.PlayResponse.Frame;
-import fr.svivien.cgbenchmark.model.test.ResultWrapper;
 import fr.svivien.cgbenchmark.model.test.TestInput;
 import fr.svivien.cgbenchmark.model.test.TestOutput;
+import fr.svivien.cgbenchmark.utils.Constants;
+import lombok.Data;
 import okhttp3.OkHttpClient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -25,14 +27,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Consumes tests in the broker, runs them against CG API and stores the results in synchronized collection
+ * Consumes tests in the testBroker, runs them against CG API and stores the results in synchronized collection
  */
+@Data
 public class Consumer implements Runnable {
 
     private static final Log LOG = LogFactory.getLog(Consumer.class);
 
     private String name;
-    private Broker broker;
+    private TestBroker testBroker;
     private CGPlayApi cgPlayApi;
     private ResultWrapper resultWrapper;
     private String cookie;
@@ -43,18 +46,16 @@ public class Consumer implements Runnable {
     private long totalTestNumber = 0;
     private long totalPauseDuration = 0;
 
-    private static final String outputFormat = "[ %10s ]%s";
-
     private AtomicBoolean pause;
 
-    public Consumer(String name, Broker broker, String cookie, String ide, int cooldown, AtomicBoolean pause, boolean saveLogs) {
-        this.cookie = cookie;
-        this.ide = ide;
-        this.name = name;
-        this.broker = broker;
-        this.pause = pause;
+    public Consumer(TestBroker testBroker, AccountConfiguration accountCfg, int cooldown, AtomicBoolean pause, boolean saveLogs) {
         OkHttpClient client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
         Retrofit retrofit = new Retrofit.Builder().client(client).baseUrl(Constants.CG_HOST).addConverterFactory(GsonConverterFactory.create()).build();
+        this.cookie = accountCfg.getAccountCookie();
+        this.ide = accountCfg.getAccountIde();
+        this.name = accountCfg.getAccountName();
+        this.testBroker = testBroker;
+        this.pause = pause;
         this.cgPlayApi = retrofit.create(CGPlayApi.class);
         this.cooldown = cooldown;
         this.saveLogs = saveLogs;
@@ -65,35 +66,32 @@ public class Consumer implements Runnable {
         try {
             globalStartTime = System.currentTimeMillis();
             while (true) {
-                // Retrieves next test in the broker
-                TestInput test = broker.getNextTest();
+                // Retrieves next test in the testBroker
+                TestInput test = testBroker.getNextTest();
                 long tryStart = System.currentTimeMillis();
 
-                // No more tests in the broker
+                // No more tests in the testBroker
                 if (test == null) break;
 
-                for (int tries = 0; tries < 20; tries++) { /** Arbitrary value .. */
+                for (int tries = 0; tries < Constants.PLAY_MAX_RETRIES; tries++) {
                     tryStart = System.currentTimeMillis();
                     TestOutput result = testCode(cgPlayApi, test);
-                    LOG.info(String.format(outputFormat, this.name, result.getResultString()));
-                    resultWrapper.getDetailBuilder().append(String.format(outputFormat, this.name, result.getResultString()) + System.lineSeparator());
+                    LOG.info(result.getResultString());
                     if (!result.isError()) {
                         totalTestNumber++;
                         resultWrapper.addTestResult(result);
                         break;
                     } else {
                         // Error occurred, waiting before retrying again
-                        Thread.sleep(tries < 10 ? 20000 : 40000); /** More arbitrary values .. */
+                        Thread.sleep(tries < Constants.PLAY_TRIES_BEFORE_DEGRADED ? Constants.PLAY_ERROR_RETRY_COOLDOWN : Constants.PLAY_ERROR_RETRY_DEGRADED_COOLDOWN);
                     }
                 }
 
-                if (broker.getTestSize() > 0) {
-                    shouldPause();
-
+                if (testBroker.size() > 0) {
+                    triggerPause();
                     // The cooldown is applied on the start-time of each test, and not on the end-time of previous test
                     Thread.sleep(Math.max(100, cooldown * 1000 - (System.currentTimeMillis() - tryStart)));
-
-                    shouldPause();
+                    triggerPause();
                 }
             }
             LOG.info("Consumer " + this.name + " finished its job.");
@@ -112,12 +110,10 @@ public class Consumer implements Runnable {
         return ((double) ((System.currentTimeMillis() - globalStartTime) - totalPauseDuration) / (double) totalTestNumber);
     }
 
-    private void shouldPause() {
+    private void triggerPause() {
         if (pause.get()) {
-
             long pauseStart = System.currentTimeMillis();
-
-            LOG.info(String.format(outputFormat, this.name, " -- PAUSED --"));
+            LOG.info("Consumer " + name + " PAUSED");
             while (pause.get()) {
                 try {
                     Thread.sleep(1000);
@@ -125,7 +121,6 @@ public class Consumer implements Runnable {
                     LOG.fatal("Consumer " + name + " has encountered an issue while resuming from pause", ex);
                 }
             }
-
             totalPauseDuration += (System.currentTimeMillis() - pauseStart);
         }
     }
@@ -150,11 +145,11 @@ public class Consumer implements Runnable {
                 logStringBuilder.append("ERROR at line ").append(currentFrame.error.line).append(":").append(System.lineSeparator());
                 logStringBuilder.append(currentFrame.error.message);
                 logStringBuilder.append(System.lineSeparator());
-            } else if (currentFrame.gameInformation.contains(Constants.TIMEOUT_INFORMATION_PART)) { // Timeout frame
+            } else if (currentFrame.gameInformation.contains(Constants.TIMEOUT_INFORMATION_PART) && currentFrame.agentId != -1) { // Timeout frame
                 logStringBuilder.append(logHeader);
                 logStringBuilder.append(test.getPlayers().get(currentFrame.agentId).getName()).append(" TIMEOUT !");
                 logStringBuilder.append(System.lineSeparator());
-            } else if (currentFrame.stderr != null && test.getPlayers().get(currentFrame.agentId).getAgentId() == -1) { // Regular frame
+            } else if (currentFrame.stderr != null && currentFrame.agentId != -1 && test.getPlayers().get(currentFrame.agentId).getAgentId() == -1) { // Regular frame
                 logStringBuilder.append(logHeader);
                 logStringBuilder.append(currentFrame.stderr);
                 logStringBuilder.append(System.lineSeparator());
@@ -183,26 +178,39 @@ public class Consumer implements Runnable {
     }
 
     private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
-        PlayRequest request = new PlayRequest(test.getCode(), test.getLang(), ide, test.getSeed(), test.getPlayers());
+        PlayRequest request = new PlayRequest(testBroker.getCodeContent(), testBroker.getCodeLanguage(), ide, test.getSeed(), test.getPlayers());
         Call<PlayResponse> call = cgPlayApi.play(request, Constants.CG_HOST + "/ide/" + ide, cookie);
+        TestOutput testOutput;
+        PlayResponse playResponse = null;
         try {
-            PlayResponse playResponse = call.execute().body();
-            if (saveLogs) dumpLogForPlay(test, playResponse);
-            return new TestOutput(test, playResponse);
-        } catch (IOException | RuntimeException e) {
-            return new TestOutput(test, null);
+            playResponse = call.execute().body();
+            testOutput = new TestOutput(test, name, playResponse);
+        } catch (IOException e) {
+            testOutput = new TestOutput(test, name, null);
         }
+
+        if (saveLogs && playResponse != null) {
+            try {
+                dumpLogForPlay(test, playResponse);
+            } catch (RuntimeException e) {
+                LOG.error("Error while dumping logs in file", e);
+            }
+        }
+
+        return testOutput;
     }
 
     //    //     DUMMY for test purpose
+    //    Random rnd = new Random(2323);
+    //
     //    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
     //        PlayResponse resp = new PlayResponse();
     //        resp.success = resp.new PlayResponseSuccess();
-    //        resp.success.gameId = (long) (297629806 + Math.random() * 702370193);
+    //        resp.success.gameId = (long) (297629806 + rnd.nextDouble() * 702370193);
     //        resp.success.frames = new java.util.ArrayList<>();
-    //        if (Math.random() < 0.05) { // Add random crash
+    //        if (rnd.nextDouble() < 0.05) { // Add random crash
     //            for (int i = 0; i < test.getPlayers().size(); i++) {
-    //                Frame f = new Frame();
+    //                Frame f = resp.new Frame();
     //                f.gameInformation = "This is timeout";
     //                f.agentId = i;
     //                resp.success.frames.add(f);
@@ -210,13 +218,9 @@ public class Consumer implements Runnable {
     //        }
     //        resp.success.scores = new java.util.ArrayList<>();
     //        for (int i = 0; i < test.getPlayers().size(); i++) {
-    //            resp.success.scores.add((int) (Math.random() * 10));
+    //            resp.success.scores.add((int) (rnd.nextDouble() * 10));
     //        }
     //        if (saveLogs) dumpLogForPlay(test, resp);
-    //        return new TestOutput(test, resp);
+    //        return new TestOutput(test, name, resp);
     //    }
-
-    public void setResultWrapper(ResultWrapper resultWrapper) {
-        this.resultWrapper = resultWrapper;
-    }
 }
