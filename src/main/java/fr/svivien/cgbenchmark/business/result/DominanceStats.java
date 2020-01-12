@@ -23,15 +23,17 @@ public class DominanceStats {
 
     private final Map<Integer, String> nickPerAgentId = new HashMap<>();
     private final Map<Integer, DominanceStat> dominances = new LinkedHashMap<>();
+    private final Map<Integer, Integer> crashes = new LinkedHashMap<>();
     private int gameNumber = 0;
-    private int crashNumber = 0;
 
     public DominanceStats() {
         dominances.put(-1, new DominanceStat());
+        crashes.put(-1, 0);
     }
 
     void addEnemy(int agentId, String nick) {
         dominances.put(agentId, new DominanceStat());
+        crashes.put(agentId, 0);
         nickPerAgentId.put(agentId, nick);
     }
 
@@ -71,8 +73,8 @@ public class DominanceStats {
         return getWinrate(agentId) + 0.5 * getDrawrate(agentId);
     }
 
-    void incrementCrash() {
-        this.crashNumber++;
+    void incrementCrash(int agentId) {
+        this.crashes.put(agentId, this.crashes.get(agentId) + 1);
     }
 
     void incrementGameNumber() {
@@ -86,6 +88,7 @@ public class DominanceStats {
         for (Map.Entry<Integer, DominanceStat> entry : dominances.entrySet()) {
             if (entry.getKey() == -1) continue;
             DominanceStat dom = entry.getValue();
+            int crashes = this.crashes.get(entry.getKey());
 
             builder.append(String.format(
                     winrateOutputFormat,
@@ -95,19 +98,20 @@ public class DominanceStats {
                     doubleFormatter.format(getLoserate(entry.getKey())) + "%",
                     doubleFormatter.format(getDrawrate(entry.getKey())) + "%",
                     dom.total,
-                    ""));
+                    crashes > 0 ? " [" + crashes + " crash" + (crashes > 1 ? "es" : "") + "]" : ""));
             builder.append(System.lineSeparator());
         }
 
+        int crashes = this.crashes.get(-1);
         builder.append(String.format(
                 winrateOutputFormat,
-                "-- TOTAL --",
+                "-- EVERYONE --",
                 doubleFormatter.format(getMeanWinrate(-1)) + "%",
                 doubleFormatter.format(getWinrate(-1)) + "%",
                 doubleFormatter.format(getLoserate(-1)) + "%",
                 doubleFormatter.format(getDrawrate(-1)) + "%",
                 gameNumber + " games",
-                crashNumber > 0 ? " [" + crashNumber + " crash(es)]" : ""));
+                crashes > 0 ? " [ME : " + crashes + " crash" + (crashes > 1 ? "es" : "") + "]" : ""));
 
         return builder.toString();
     }

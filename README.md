@@ -9,7 +9,7 @@ Allows you to queue batches of matches on any multiplayer game of CodinGame.
 Simulates PLAY in the IDE and gathers results.  
 You can add an unlimited number of source code in the configuration file, they'll be benchmarked one by one.  
 A .txt report file with global winrate and replay links will be produced for each of them.  
-Reports for a single code looks like [this](https://pastebin.com/q7pDSAhW)
+Reports for a single code looks like [this](https://pastebin.com/Ucsk41Dc) (for 1v1 games) or [this](https://pastebin.com/GJRJDxzW) (for 1vN games)
 
 ### Prerequisites
 The tool requires JRE 1.8 to run, and JDK 1.8 to build.
@@ -89,19 +89,28 @@ codeConfigurationList:
   - agentId: '812582'
     name: reCurse
 - sourcePath: C:/CGBenchmark/totest/2.cpp
-  nbReplays: 1
-  language: C++
-  enemies:
-  - agentId: '762230'
-    name: Agade
-  - agentId: '817482'
-    name: pb4
-  - agentId: '812582'
-    name: reCurse
+- sourcePath: C:/CGBenchmark/totest/3.cpp
+
+# -- The following values are the default ones that are used if not defined in the codeConfigurationList
+
+# Default value for nbReplays
+defaultNbReplays: 6
+
+# Default value for language
+defaultLanguage: C++
+
+# Default value for enemies
+defaultEnemies:
+  - agentId: '123456'
+    name: Recar
+  - agentId: '344556'
+    name: Illedan
 
 ```
 
 ### Latest features :
+- Default enemy list, language and nbReplays
+- Isolated crash counters
 - YAML support
 - Estimation of remaining benchmark time
 - Works during contests (new parameter `isContest` in the configuration file)
@@ -112,7 +121,7 @@ codeConfigurationList:
 - You can now define a N enemies pool for each code configuration. Enemies will be picked randomly at each game (as well as their number, which will be a random value between `minEnemiesNumber` and `maxEnemiesNumber`). These random choices are deterministic, i.e. if you benchmark two codes with the same `enemies` configuration and a fixed seed list, each seed will be played against the same enemies every time.
 
 ### Things that would be cool to have:
- * Unit tests ...
+ * Unit tests
  * Bring back separated P1/P2 winrates for 1v1 games
  * Reduce benchmark time with adaptive cooldown between games
  * Error margin in stats

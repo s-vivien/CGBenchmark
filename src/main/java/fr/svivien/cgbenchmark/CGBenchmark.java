@@ -27,6 +27,10 @@ import retrofit2.Call;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,6 +38,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -298,6 +303,16 @@ public class CGBenchmark {
     }
 
     private void checkConfiguration(GlobalConfiguration globalConfiguration) throws IllegalArgumentException {
+
+        // Bean validation
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        Validator validator = factory.getValidator();
+        Set<ConstraintViolation<GlobalConfiguration>> constraintViolations = validator.validate(globalConfiguration);
+        if (!constraintViolations.isEmpty()) {
+            ConstraintViolation<GlobalConfiguration> error = constraintViolations.iterator().next();
+            throw new IllegalArgumentException("Configuration error : " + error.getRootBeanClass().getSimpleName() + "." + error.getPropertyPath() + " " + error.getMessage());
+        }
+
         // Checks if every code file exists
         for (CodeConfiguration codeCfg : globalConfiguration.getCodeConfigurationList()) {
             if (!Files.isReadable(Paths.get(codeCfg.getSourcePath()))) {
@@ -308,21 +323,6 @@ public class CGBenchmark {
         // Checks write permission for final reports
         if (!Files.isWritable(Paths.get(""))) {
             throw new IllegalArgumentException("Cannot write in current directory");
-        }
-
-        // Checks account number
-        if (globalConfiguration.getAccountConfigurationList().isEmpty()) {
-            throw new IllegalArgumentException("You must provide at least one valid account");
-        }
-
-        // Checks that no account field is missing
-        for (AccountConfiguration accountCfg : globalConfiguration.getAccountConfigurationList()) {
-            if (accountCfg.getAccountName() == null) {
-                throw new IllegalArgumentException("You must provide account name");
-            }
-            if (accountCfg.getAccountLogin() == null || accountCfg.getAccountPassword() == null) {
-                throw new IllegalArgumentException("You must provide account login/pwd");
-            }
         }
 
         // Checks that there are seeds to test
@@ -345,7 +345,22 @@ public class CGBenchmark {
         LOG.info("Loading configuration file : " + cfgFilePath);
         Yaml yaml = new Yaml(new Constructor(GlobalConfiguration.class));
         FileInputStream configFileInputStream = new FileInputStream(cfgFilePath);
-        return yaml.load(configFileInputStream);
+        GlobalConfiguration cfg = yaml.load(configFileInputStream);
+
+        // Overrides each code configuration with the default values if provided
+        for (CodeConfiguration codeCfg : cfg.getCodeConfigurationList()) {
+            if (codeCfg.getEnemies() == null && cfg.getDefaultEnemies() != null) {
+                codeCfg.setEnemies(new ArrayList<>(cfg.getDefaultEnemies()));
+            }
+            if (codeCfg.getLanguage() == null && cfg.getDefaultLanguage() != null) {
+                codeCfg.setLanguage(cfg.getDefaultLanguage());
+            }
+            if (codeCfg.getNbReplays() == null && cfg.getDefaultNbReplays() != null) {
+                codeCfg.setNbReplays(cfg.getDefaultNbReplays());
+            }
+        }
+
+        return cfg;
     }
 
     void pause() {

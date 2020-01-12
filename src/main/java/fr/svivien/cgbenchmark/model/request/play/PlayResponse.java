@@ -25,6 +25,12 @@ public class PlayResponse {
         public Error error;
     }
 
+    public class Tooltip {
+        public int turn;
+        public String text;
+        public int event;
+    }
+
     public class PlayResponseSuccess {
         public List<Integer> scores;
         public List<Frame> frames;

@@ -200,15 +200,15 @@ public class Consumer implements Runnable {
         return testOutput;
     }
 
-    //    //     DUMMY for test purpose
+    //         DUMMY for test purpose
     //    Random rnd = new Random(2323);
-    //
+
     //    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
     //        PlayResponse resp = new PlayResponse();
     //        resp.success = resp.new PlayResponseSuccess();
     //        resp.success.gameId = (long) (297629806 + rnd.nextDouble() * 702370193);
     //        resp.success.frames = new java.util.ArrayList<>();
-    //        if (rnd.nextDouble() < 0.05) { // Add random crash
+    //        if (rnd.nextDouble() < 0.015) { // Add random crash
     //            for (int i = 0; i < test.getPlayers().size(); i++) {
     //                Frame f = resp.new Frame();
     //                f.gameInformation = "This is timeout";

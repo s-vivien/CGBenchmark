@@ -1,5 +1,6 @@
 package fr.svivien.cgbenchmark.model.test;
 
+import com.google.gson.Gson;
 import fr.svivien.cgbenchmark.model.config.EnemyConfiguration;
 import fr.svivien.cgbenchmark.model.request.play.PlayResponse;
 import fr.svivien.cgbenchmark.utils.Constants;
@@ -16,40 +17,45 @@ import java.util.Map;
 @Data
 public class TestOutput {
 
-    private boolean crash;
+    private static Gson gson = new Gson();
     private boolean error;
     private String resultString;
-    private Map<Integer, Integer> rankPerAgentId = new HashMap<>();
+    private Map<Integer, AgentIdResult> resultPerAgentId = new HashMap<>();
 
-    private static final String outputFormat = "[ %10s ][ %8s ] %s%s";
+    private static final String outputFormat = "[ %10s ][ %8s ] %s";
+
+    private boolean containsTimeoutInfo(String msg) {
+        return msg.contains(Constants.TIMEOUT_INFORMATION_PART)
+               || msg.contains(Constants.TIMEOUT_BIS_INFORMATION_PART)
+               || msg.contains(Constants.INVALID_INFORMATION_PART)
+               || msg.contains(Constants.INVALID_BIS_INFORMATION_PART);
+    }
 
     public TestOutput(TestInput test, String consumerName, PlayResponse response) {
-        // Checks if your AI crashed or not ..
-        if (response != null && response.success != null) {
-            for (PlayResponse.Frame frame : response.success.frames) {
-                if (frame.gameInformation.toLowerCase().contains(Constants.TIMEOUT_INFORMATION_PART) || (frame.summary != null && (frame.summary.toLowerCase().contains(Constants.TIMEOUT_INFORMATION_PART)))) {
-                    this.crash = true;
-                    break;
-                }
-            }
-            if (response.success.tooltips != null) {
-                for (String tooltip : response.success.tooltips) {
-                    if (tooltip.toLowerCase().contains(Constants.TIMEOUT_INFORMATION_PART)) {
-                        this.crash = true;
-                        break;
-                    }
-                }
-            }
-        }
-
         String resultMessage;
-        if (response == null || response.error != null) {
+        if (response == null || response.error != null || response.success == null) {
             this.error = true;
             resultMessage = "ERROR" + (response == null ? "" : (" " + response.error.message));
         } else {
             Map<Integer, String> nickPerAgentId = new HashMap<>();
             for (EnemyConfiguration ec : test.getPlayers()) {
                 nickPerAgentId.put(ec.getAgentId(), ec.getName());
+                resultPerAgentId.put(ec.getAgentId(), new AgentIdResult());
+            }
+
+            // Looks for crashes
+            for (PlayResponse.Frame frame : response.success.frames) {
+                if (containsTimeoutInfo(frame.gameInformation.toLowerCase()) || (frame.summary != null && containsTimeoutInfo(frame.summary.toLowerCase()))) {
+                    this.resultPerAgentId.get(test.getPlayers().get(frame.agentId).getAgentId()).setCrashed(true);
+                }
+            }
+            if (response.success.tooltips != null) {
+                for (String tooltip : response.success.tooltips) {
+                    if (containsTimeoutInfo(tooltip)) {
+                        PlayResponse.Tooltip parsedTooltip = gson.fromJson(tooltip, PlayResponse.Tooltip.class);
+                        this.resultPerAgentId.get(test.getPlayers().get(parsedTooltip.event).getAgentId()).setCrashed(true);
+                    }
+                }
             }
 
             List<Integer> scores = response.success.scores;
@@ -71,17 +77,19 @@ public class TestOutput {
 
             resultMessage = Constants.CG_HOST + "/replay/" + response.success.gameId + " ";
             int rank = 1;
-            resultMessage += rank + ":" + nickPerAgentId.get(orderedAgentIds.get(0));
-            rankPerAgentId.put(orderedAgentIds.get(0), rank);
+            AgentIdResult agentIdResult = resultPerAgentId.get(orderedAgentIds.get(0));
+            resultMessage += rank + ":" + nickPerAgentId.get(orderedAgentIds.get(0)) + (agentIdResult.isCrashed() ? "(C)" : "");
+            agentIdResult.setRank(rank);
             for (int i = 1; i < test.getPlayers().size(); i++) {
                 if (scorePerAgentId.get(orderedAgentIds.get(i)) < scorePerAgentId.get(orderedAgentIds.get(i - 1))) {
                     rank++;
                 }
-                resultMessage += " " + rank + ":" + nickPerAgentId.get(orderedAgentIds.get(i));
-                rankPerAgentId.put(orderedAgentIds.get(i), rank);
+                agentIdResult = resultPerAgentId.get(orderedAgentIds.get(i));
+                resultMessage += " " + rank + ":" + nickPerAgentId.get(orderedAgentIds.get(i)) + (agentIdResult.isCrashed() ? "(C)" : "");
+                agentIdResult.setRank(rank);
             }
         }
 
-        this.resultString = String.format(outputFormat, consumerName, "SEED " + test.getSeedNumber(), resultMessage, (crash ? " (CRASH)" : ""));
+        this.resultString = String.format(outputFormat, consumerName, "SEED " + test.getSeedNumber(), resultMessage);
     }
 }
