@@ -20,6 +20,11 @@ public class EnemyConfiguration {
     public EnemyConfiguration() {
     }
 
+    public EnemyConfiguration(EnemyConfiguration other) {
+        this.agentId = other.agentId;
+        this.name = other.name;
+    }
+
     public EnemyConfiguration(Integer agentId, String name) {
         this.agentId = agentId;
         this.name = name;

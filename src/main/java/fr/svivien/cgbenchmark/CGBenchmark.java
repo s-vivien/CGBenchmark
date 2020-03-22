@@ -350,7 +350,10 @@ public class CGBenchmark {
         // Overrides each code configuration with the default values if provided
         for (CodeConfiguration codeCfg : cfg.getCodeConfigurationList()) {
             if (codeCfg.getEnemies() == null && cfg.getDefaultEnemies() != null) {
-                codeCfg.setEnemies(new ArrayList<>(cfg.getDefaultEnemies()));
+                codeCfg.setEnemies(new ArrayList<>());
+                for (EnemyConfiguration enemyCfg : cfg.getDefaultEnemies()) {
+                    codeCfg.getEnemies().add(new EnemyConfiguration(enemyCfg));
+                }
             }
             if (codeCfg.getLanguage() == null && cfg.getDefaultLanguage() != null) {
                 codeCfg.setLanguage(cfg.getDefaultLanguage());
