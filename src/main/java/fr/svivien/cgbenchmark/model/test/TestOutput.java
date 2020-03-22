@@ -25,10 +25,11 @@ public class TestOutput {
     private static final String outputFormat = "[ %10s ][ %8s ] %s";
 
     private boolean containsTimeoutInfo(String msg) {
-        return msg.contains(Constants.TIMEOUT_INFORMATION_PART)
-               || msg.contains(Constants.TIMEOUT_BIS_INFORMATION_PART)
-               || msg.contains(Constants.INVALID_INFORMATION_PART)
-               || msg.contains(Constants.INVALID_BIS_INFORMATION_PART);
+        String lowerCaseMsg = msg.toLowerCase();
+        return lowerCaseMsg.contains(Constants.TIMEOUT_INFORMATION_PART)
+               || lowerCaseMsg.contains(Constants.TIMEOUT_BIS_INFORMATION_PART)
+               || lowerCaseMsg.contains(Constants.INVALID_INFORMATION_PART)
+               || lowerCaseMsg.contains(Constants.INVALID_BIS_INFORMATION_PART);
     }
 
     public TestOutput(TestInput test, String consumerName, PlayResponse response) {
