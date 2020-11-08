@@ -40,7 +40,7 @@ The configuration uses the YAML format (which is a superset of JSON, so your old
 accountConfigurationList:
 - accountName: Neumann # Name of your account
   accountLogin: email@provider.com # Login of your account
-  accountPassword: 123password # Password of your account
+  accountPassword: 123password # Password of your account (optional, will be asked in a prompt if not provided)
 
 # If enabled, seed list will be ignored and every match will be played against a random seed
 randomSeed: false
@@ -109,6 +109,7 @@ defaultEnemies:
 ```
 
 ### Latest features :
+- Password isn't mandatory in the config file. If not provided, it will be asked in a prompt
 - Default enemy list, language and nbReplays
 - Isolated crash counters
 - YAML support

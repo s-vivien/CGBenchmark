@@ -17,7 +17,6 @@ public class AccountConfiguration {
     @NotNull
     private String accountLogin;
 
-    @NotNull
     private String accountPassword;
 
 }

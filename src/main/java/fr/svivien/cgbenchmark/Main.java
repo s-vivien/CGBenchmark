@@ -21,7 +21,7 @@ public class Main {
         try {
             cmd = new DefaultParser().parse(options, args);
         } catch (ParseException e) {
-            LOG.fatal("CGBenchmark has encountered a problem while parsing command line", e);
+            LOG.fatal("CGBenchmark has encountered a problem while parsing command line parameters", e);
             System.exit(1);
         }
 

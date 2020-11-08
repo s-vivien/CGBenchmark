@@ -71,15 +71,33 @@ public class CGBenchmark {
 
         // Creating account consumers
         LOG.info("Registering " + globalConfiguration.getAccountConfigurationList().size() + " account(s)");
-        for (AccountConfiguration accountCfg : globalConfiguration.getAccountConfigurationList()) {
-            try {
-                retrieveAccountCookieAndSession(accountCfg);
-            } catch (IllegalStateException e) {
-                LOG.fatal("Error while retrieving account cookie and session", e);
-                System.exit(1);
+        try {
+            for (AccountConfiguration accountCfg : globalConfiguration.getAccountConfigurationList()) {
+                if (accountCfg.getAccountPassword() == null) { // Asks for the account password in a prompt
+                    Console console = System.console();
+                    if (console == null) {
+                        LOG.fatal("Cannot retrieve console. That might happen when CGBenchmark is launched with a redirected standard input. Please try without redirection");
+                        System.exit(1);
+                    }
+                    while (true) { // Re-try until the password is correct
+                        char[] passwordArray = console.readPassword("Enter the password for account [" + accountCfg.getAccountLogin() + "] : ");
+                        accountCfg.setAccountPassword(new String(passwordArray));
+                        try {
+                            retrieveAccountCookieAndSession(accountCfg);
+                            break;
+                        } catch (IllegalStateException e) {
+                            LOG.error("Wrong password, try again");
+                        }
+                    }
+                } else {
+                    retrieveAccountCookieAndSession(accountCfg);
+                }
+                consumers.add(new Consumer(testBroker, accountCfg, globalConfiguration.getRequestCooldown(), pause, globalConfiguration.isSaveLogs()));
+                LOG.info("Account " + accountCfg.getAccountName() + " successfully registered");
             }
-            consumers.add(new Consumer(testBroker, accountCfg, globalConfiguration.getRequestCooldown(), pause, globalConfiguration.isSaveLogs()));
-            LOG.info("Account " + accountCfg.getAccountName() + " successfully registered");
+        } catch (IllegalStateException e) {
+            LOG.fatal("Error while retrieving account cookie and session", e);
+            System.exit(1);
         }
     }
 
