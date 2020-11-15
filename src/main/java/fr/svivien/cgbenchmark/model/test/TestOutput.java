@@ -24,12 +24,12 @@ public class TestOutput {
 
     private static final String outputFormat = "[ %10s ][ %8s ] %s";
 
-    private boolean containsTimeoutInfo(String msg) {
+    private boolean containsTimeoutInfo(String msg, boolean checkForInvalidActions) {
         String lowerCaseMsg = msg.toLowerCase();
         return lowerCaseMsg.contains(Constants.TIMEOUT_INFORMATION_PART)
                || lowerCaseMsg.contains(Constants.TIMEOUT_BIS_INFORMATION_PART)
-               || lowerCaseMsg.contains(Constants.INVALID_INFORMATION_PART)
-               || lowerCaseMsg.contains(Constants.INVALID_BIS_INFORMATION_PART);
+               || (checkForInvalidActions && lowerCaseMsg.contains(Constants.INVALID_INFORMATION_PART))
+               || (checkForInvalidActions && lowerCaseMsg.contains(Constants.INVALID_BIS_INFORMATION_PART));
     }
 
     public TestOutput(TestInput test, String consumerName, PlayResponse response) {
@@ -46,13 +46,13 @@ public class TestOutput {
 
             // Looks for crashes
             for (PlayResponse.Frame frame : response.success.frames) {
-                if (containsTimeoutInfo(frame.gameInformation.toLowerCase()) || (frame.summary != null && containsTimeoutInfo(frame.summary.toLowerCase()))) {
+                if (containsTimeoutInfo(frame.gameInformation, false) || (frame.summary != null && containsTimeoutInfo(frame.summary, false))) {
                     this.resultPerAgentId.get(test.getPlayers().get(frame.agentId).getAgentId()).setCrashed(true);
                 }
             }
             if (response.success.tooltips != null) {
                 for (String tooltip : response.success.tooltips) {
-                    if (containsTimeoutInfo(tooltip)) {
+                    if (containsTimeoutInfo(tooltip, true)) {
                         PlayResponse.Tooltip parsedTooltip = gson.fromJson(tooltip, PlayResponse.Tooltip.class);
                         this.resultPerAgentId.get(test.getPlayers().get(parsedTooltip.event).getAgentId()).setCrashed(true);
                     }
