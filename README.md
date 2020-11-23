@@ -18,7 +18,7 @@ You can grab the pre-compiled Jar in the [releases](https://github.com/s-vivien/
 ### Build:
 The tool is built with Gradle, using the task `fatJar` :
 ```
-gradle fatJar
+gradlew fatJar
 ```
 or, for Windows :
 ```
