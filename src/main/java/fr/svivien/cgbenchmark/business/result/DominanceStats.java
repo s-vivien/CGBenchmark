@@ -18,7 +18,7 @@ public class DominanceStats {
         private double win, lose, draw;
     }
 
-    private static final String winrateOutputFormat = "%20s    GW=%-7s   [ W=%-7s  L=%-7s  D=%-7s ] [%s]%s";
+    private static final String winrateOutputFormat = "%20s    GW=%-7s [%-3s,%-3s] [ W=%-7s  L=%-7s  D=%-7s ] [%s]%s";
     private static final NumberFormat doubleFormatter = new DecimalFormat(Constants.DOUBLE_FORMAT);
 
     private final Map<Integer, String> nickPerAgentId = new HashMap<>();
@@ -81,27 +81,37 @@ public class DominanceStats {
         this.gameNumber++;
     }
 
+    private double[] calculateWinrateBounds(double winrate,double winrateSigma){
+        final double winrateUncertaintyDelta = 1.96*winrateSigma*100; //95% confidence interval
+        final double[] bounds = new double[]{Math.max(0,winrate-winrateUncertaintyDelta),Math.min(100,winrate+winrateUncertaintyDelta)};
+        return bounds;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        double overall_sigma = 0;
+        double overallSigma = 0;
+        double overallWinrateContributors = 0;
 
         for (Map.Entry<Integer, DominanceStat> entry : dominances.entrySet()) {
             if (entry.getKey() == -1) continue;
             DominanceStat dom = entry.getValue();
             int crashes = this.crashes.get(entry.getKey());
             final double winrate = getMeanWinrate(entry.getKey());
-            final double winrate_variance = (winrate/100)*(1-(winrate/100))/dom.total; //Approximate variance sqrt(p*(1-p)). See variance of binomial distribution. Most accurate around 50% winrate, very inacurate at 0 and 100% where there is 0 error
-            final double winrate_sigma = Math.sqrt(winrate_variance); 
-            final double winrate_uncertainty_delta = 1.96*winrate_sigma*100; //95% confidence interval
-            final double winrate_lower_bound = Math.max(0,winrate-winrate_uncertainty_delta);
-            final double winrate_upper_bound = Math.min(100,winrate+winrate_uncertainty_delta);
-            overall_sigma += winrate_variance;
+            final double winrateVariance = (winrate/100)*(1-(winrate/100))/dom.total; //Approximate variance sqrt(p*(1-p)). See variance of binomial distribution. Most accurate around 50% winrate, very inacurate at 0 and 100% where there is 0 error
+            final double winrateSigma = Math.sqrt(winrateVariance);
+            final double[] winrateBounds = dom.total>0?calculateWinrateBounds(winrate,winrateSigma):new double[]{0,100};
+            if(dom.total>0){
+                overallSigma += winrateVariance;
+                ++overallWinrateContributors;
+            }
 
             builder.append(String.format(
                     winrateOutputFormat,
                     nickPerAgentId.get(entry.getKey()),
-                    doubleFormatter.format(winrate) + "% [" + doubleFormatter.format(winrate_lower_bound) + "," + doubleFormatter.format(winrate_upper_bound) + "]",
+                    doubleFormatter.format(winrate) + "% ",
+                    doubleFormatter.format(winrateBounds[0]),
+                    doubleFormatter.format(winrateBounds[1]),
                     doubleFormatter.format(getWinrate(entry.getKey())) + "%",
                     doubleFormatter.format(getLoserate(entry.getKey())) + "%",
                     doubleFormatter.format(getDrawrate(entry.getKey())) + "%",
@@ -109,17 +119,17 @@ public class DominanceStats {
                     crashes > 0 ? " [" + crashes + " crash" + (crashes > 1 ? "es" : "") + "]" : ""));
             builder.append(System.lineSeparator());
         }
-        overall_sigma = Math.sqrt(overall_sigma)/dominances.size(); //Variance of the average https://stats.stackexchange.com/questions/168971/variance-of-an-average-of-random-variables
-        final double overall_winrate = getMeanWinrate(-1);
-        final double overall_winrate_uncertainty_delta = 1.96*overall_sigma*100; //95% confidence interval
-        final double overall_winrate_lower_bound = Math.max(0,overall_winrate-overall_winrate_uncertainty_delta);
-        final double overall_winrate_upper_bound = Math.min(100,overall_winrate+overall_winrate_uncertainty_delta);
+        overallSigma = Math.sqrt(overallSigma)/overallWinrateContributors; //Variance of the average https://stats.stackexchange.com/questions/168971/variance-of-an-average-of-random-variables
+        final double overallWinrate = getMeanWinrate(-1);
+        final double[] overallWinrateBounds = calculateWinrateBounds(overallWinrate,overallSigma);
 
         int crashes = this.crashes.get(-1);
         builder.append(String.format(
                 winrateOutputFormat,
                 "-- EVERYONE --",
-                doubleFormatter.format(overall_winrate) + "% [" + doubleFormatter.format(overall_winrate_lower_bound) + "," + doubleFormatter.format(overall_winrate_upper_bound) + "]",
+                doubleFormatter.format(overallWinrate) + "% ",
+                doubleFormatter.format(overallWinrateBounds[0]),
+                doubleFormatter.format(overallWinrateBounds[1]),
                 doubleFormatter.format(getWinrate(-1)) + "%",
                 doubleFormatter.format(getLoserate(-1)) + "%",
                 doubleFormatter.format(getDrawrate(-1)) + "%",
