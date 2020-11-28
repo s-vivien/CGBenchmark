@@ -18,7 +18,7 @@ public class DominanceStats {
         private double win, lose, draw;
     }
 
-    private static final String winrateOutputFormat = "%20s    GW=%-7s [%-3s,%-3s] [ W=%-7s  L=%-7s  D=%-7s ] [%s]%s";
+    private static final String winrateOutputFormat = "%20s    GW=%-7s [%-6s,%-6s] [ W=%-7s  L=%-7s  D=%-7s ] [%s]%s";
     private static final NumberFormat doubleFormatter = new DecimalFormat(Constants.DOUBLE_FORMAT);
 
     private final Map<Integer, String> nickPerAgentId = new HashMap<>();
@@ -109,7 +109,7 @@ public class DominanceStats {
             builder.append(String.format(
                     winrateOutputFormat,
                     nickPerAgentId.get(entry.getKey()),
-                    doubleFormatter.format(winrate) + "% ",
+                    doubleFormatter.format(winrate) + "%",
                     doubleFormatter.format(winrateBounds[0]),
                     doubleFormatter.format(winrateBounds[1]),
                     doubleFormatter.format(getWinrate(entry.getKey())) + "%",
@@ -127,7 +127,7 @@ public class DominanceStats {
         builder.append(String.format(
                 winrateOutputFormat,
                 "-- EVERYONE --",
-                doubleFormatter.format(overallWinrate) + "% ",
+                doubleFormatter.format(overallWinrate) + "%",
                 doubleFormatter.format(overallWinrateBounds[0]),
                 doubleFormatter.format(overallWinrateBounds[1]),
                 doubleFormatter.format(getWinrate(-1)) + "%",
