@@ -9,7 +9,7 @@ Allows you to queue batches of matches on any multiplayer game of CodinGame.
 Simulates PLAY in the IDE and gathers results.  
 You can add an unlimited number of source code in the configuration file, they'll be benchmarked one by one.  
 A .txt report file with global winrate and replay links will be produced for each of them.  
-Reports for a single code looks like [this](https://pastebin.com/Ucsk41Dc) (for 1v1 games) or [this](https://pastebin.com/GJRJDxzW) (for 1vN games)
+Reports for a single code looks like [this](https://pastebin.com/VM30exsR) (for 1v1 games) or [this](https://pastebin.com/JBSaJzMb) (for 1vN games)
 
 ### Prerequisites
 The tool requires JRE 1.8 to run, and JDK 1.8 to build.
@@ -109,6 +109,7 @@ defaultEnemies:
 ```
 
 ### Latest features :
+- Confidence interval in winrate stats
 - Password isn't mandatory in the config file. If not provided, it will be asked in a prompt
 - Default enemy list, language and nbReplays
 - Isolated crash counters
@@ -125,6 +126,5 @@ defaultEnemies:
  * Unit tests
  * Bring back separated P1/P2 winrates for 1v1 games
  * Reduce benchmark time with adaptive cooldown between games
- * Error margin in stats
- * Early benchmark cut if winrate is too low (with a minimum a played matches)
+ * Early benchmark cut if winrate is too low (with a minimum of played matches)
  * Excel-like output

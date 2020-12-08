@@ -91,7 +91,7 @@ public class ResultWrapper {
     }
 
     public String getShortFilenameWinrate() {
-        return doubleFormatter.format(dominanceStats.getMeanWinrate(-1)).replace(",", ".");
+        return doubleFormatter.format(dominanceStats.getGlobalMeanWinrate()).replace(",", ".");
     }
 
     public String getWinrateDetails() {
