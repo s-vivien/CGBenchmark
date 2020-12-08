@@ -7,6 +7,7 @@ import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import org.apache.commons.math3.distribution.BetaDistribution;
 
 /**
@@ -82,13 +83,13 @@ public class DominanceStats {
         this.gameNumber++;
     }
 
-    private double[] calculateWinrateBounds(final double games,final double wins){
-        final double alpha=0.05;
-        BetaDistribution betaDist = new BetaDistribution(games-wins+1, wins+1e-7);
-        final double lower_bound=1-betaDist.inverseCumulativeProbability(1-alpha/2d);
-        betaDist = new BetaDistribution(games-wins+1e-7, wins+1);
-        final double upper_bound=1-betaDist.inverseCumulativeProbability(alpha/2d);
-        final double[] bounds = new double[]{100*lower_bound,100*upper_bound};
+    private double[] calculateWinrateBounds(final double games, final double wins) {
+        final double alpha = 0.05;
+        BetaDistribution betaDist = new BetaDistribution(games - wins + 1, wins + 1e-7);
+        final double lower_bound = 1 - betaDist.inverseCumulativeProbability(1 - alpha / 2d);
+        betaDist = new BetaDistribution(games - wins + 1e-7, wins + 1);
+        final double upper_bound = 1 - betaDist.inverseCumulativeProbability(alpha / 2d);
+        final double[] bounds = new double[]{100 * lower_bound, 100 * upper_bound};
         return bounds;
     }
 
@@ -100,7 +101,7 @@ public class DominanceStats {
             if (entry.getKey() == -1) continue;
             DominanceStat dom = entry.getValue();
             int crashes = this.crashes.get(entry.getKey());
-            final double[] winrateBounds = dom.total>0?calculateWinrateBounds(dom.total,dom.win+0.5*dom.draw):new double[]{0,100};
+            final double[] winrateBounds = dom.total > 0 ? calculateWinrateBounds(dom.total, dom.win + 0.5 * dom.draw) : new double[]{0, 100};
 
             builder.append(String.format(
                     winrateOutputFormat,
@@ -116,7 +117,7 @@ public class DominanceStats {
             builder.append(System.lineSeparator());
         }
         DominanceStat totalStat = dominances.get(-1);
-        final double[] overallWinrateBounds = calculateWinrateBounds(totalStat.total,totalStat.win+0.5*totalStat.draw);// Can I really do it like this for the average winrate? Or must I somehow propagate the bounds from the individual winrates?
+        final double[] overallWinrateBounds = calculateWinrateBounds(totalStat.total, totalStat.win + 0.5 * totalStat.draw);// Can I really do it like this for the average winrate? Or must I somehow propagate the bounds from the individual winrates?
 
         int crashes = this.crashes.get(-1);
         builder.append(String.format(
