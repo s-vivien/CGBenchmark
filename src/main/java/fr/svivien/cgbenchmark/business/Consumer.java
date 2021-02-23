@@ -14,6 +14,7 @@ import okhttp3.OkHttpClient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import retrofit2.Call;
+import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -126,19 +127,14 @@ public class Consumer implements Runnable {
     }
 
     private void dumpLogForPlay(TestInput test, PlayResponse response) {
-        if (response.success == null) {
-            // Nothing to log
-            return;
-        }
-
         // gameId as filename
-        final String fileName = "." + File.separator + "logs" + File.separator + response.success.gameId + ".log";
+        final String fileName = "." + File.separator + "logs" + File.separator + response.gameId + ".log";
 
         StringBuilder logStringBuilder = new StringBuilder();
 
-        for (int iframe = 0; iframe < response.success.frames.size(); iframe++) {
-            Frame currentFrame = response.success.frames.get(iframe);
-            String logHeader = "----- " + iframe + " / " + response.success.frames.size() + " -----" + System.lineSeparator();
+        for (int iframe = 0; iframe < response.frames.size(); iframe++) {
+            Frame currentFrame = response.frames.get(iframe);
+            String logHeader = "----- " + iframe + " / " + response.frames.size() + " -----" + System.lineSeparator();
 
             if (currentFrame.error != null) { // Error frame
                 logStringBuilder.append(logHeader);
@@ -164,7 +160,7 @@ public class Consumer implements Runnable {
                 Files.createDirectories(pathToFile.getParent());
                 Files.createFile(pathToFile);
             } catch (IOException ex) {
-                LOG.error("Unable to create log file for " + response.success.gameId, ex);
+                LOG.error("Unable to create log file for " + response.gameId, ex);
             }
 
             // Writes content to file
@@ -172,7 +168,7 @@ public class Consumer implements Runnable {
                 fw.write(logStringBuilder.toString());
                 fw.flush();
             } catch (IOException ex) {
-                LOG.error("Unable to write log file for " + response.success.gameId, ex);
+                LOG.error("Unable to write log file for " + response.gameId, ex);
             }
         }
     }
@@ -183,10 +179,15 @@ public class Consumer implements Runnable {
         TestOutput testOutput;
         PlayResponse playResponse = null;
         try {
-            playResponse = call.execute().body();
-            testOutput = new TestOutput(test, name, playResponse);
+            Response<PlayResponse> response = call.execute();
+            if (response.isSuccessful()) {
+                playResponse = response.body();
+                testOutput = new TestOutput(test, name, playResponse);
+            } else {
+                testOutput = new TestOutput(test, name, response.errorBody() != null ? response.errorBody().string() : "");
+            }
         } catch (IOException e) {
-            testOutput = new TestOutput(test, name, null);
+            testOutput = new TestOutput(test, name, "");
         }
 
         if (saveLogs && playResponse != null) {
@@ -200,25 +201,23 @@ public class Consumer implements Runnable {
         return testOutput;
     }
 
-    //         DUMMY for test purpose
+    //             DUMMY for test purpose
     //    Random rnd = new Random(2323);
-
     //    private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
     //        PlayResponse resp = new PlayResponse();
-    //        resp.success = resp.new PlayResponseSuccess();
-    //        resp.success.gameId = (long) (297629806 + rnd.nextDouble() * 702370193);
-    //        resp.success.frames = new java.util.ArrayList<>();
+    //        resp.gameId = (long) (297629806 + rnd.nextDouble() * 702370193);
+    //        resp.frames = new java.util.ArrayList<>();
     //        if (rnd.nextDouble() < 0.015) { // Add random crash
     //            for (int i = 0; i < test.getPlayers().size(); i++) {
     //                Frame f = resp.new Frame();
     //                f.gameInformation = "This is timeout";
     //                f.agentId = i;
-    //                resp.success.frames.add(f);
+    //                resp.frames.add(f);
     //            }
     //        }
-    //        resp.success.scores = new java.util.ArrayList<>();
+    //        resp.scores = new java.util.ArrayList<>();
     //        for (int i = 0; i < test.getPlayers().size(); i++) {
-    //            resp.success.scores.add((int) (rnd.nextDouble() * 10));
+    //            resp.scores.add((int) (rnd.nextDouble() * 10));
     //        }
     //        if (saveLogs) dumpLogForPlay(test, resp);
     //        return new TestOutput(test, name, resp);

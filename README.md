@@ -109,6 +109,7 @@ defaultEnemies:
 ```
 
 ### Latest features :
+- New CG API compliance
 - Confidence interval in winrate stats
 - Password isn't mandatory in the config file. If not provided, it will be asked in a prompt
 - Default enemy list, language and nbReplays

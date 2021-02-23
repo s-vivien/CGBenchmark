@@ -32,63 +32,65 @@ public class TestOutput {
                || (checkForInvalidActions && lowerCaseMsg.contains(Constants.INVALID_BIS_INFORMATION_PART));
     }
 
+    // Error constructor
+    public TestOutput(TestInput test, String consumerName, String errorMessage) {
+        this.error = true;
+        this.resultString = String.format(outputFormat, consumerName, "SEED " + test.getSeedNumber(), "ERROR" + (errorMessage == null ? "" : (" " + errorMessage)));
+    }
+
+    // Success constructor
     public TestOutput(TestInput test, String consumerName, PlayResponse response) {
         String resultMessage;
-        if (response == null || response.error != null || response.success == null) {
-            this.error = true;
-            resultMessage = "ERROR" + (response == null ? "" : (" " + response.error.message));
-        } else {
-            Map<Integer, String> nickPerAgentId = new HashMap<>();
-            for (EnemyConfiguration ec : test.getPlayers()) {
-                nickPerAgentId.put(ec.getAgentId(), ec.getName());
-                resultPerAgentId.put(ec.getAgentId(), new AgentIdResult());
-            }
+        Map<Integer, String> nickPerAgentId = new HashMap<>();
+        for (EnemyConfiguration ec : test.getPlayers()) {
+            nickPerAgentId.put(ec.getAgentId(), ec.getName());
+            resultPerAgentId.put(ec.getAgentId(), new AgentIdResult());
+        }
 
-            // Looks for crashes
-            for (PlayResponse.Frame frame : response.success.frames) {
-                if (containsTimeoutInfo(frame.gameInformation, false) || (frame.summary != null && containsTimeoutInfo(frame.summary, false))) {
-                    this.resultPerAgentId.get(test.getPlayers().get(frame.agentId).getAgentId()).setCrashed(true);
+        // Looks for crashes
+        for (PlayResponse.Frame frame : response.frames) {
+            if (containsTimeoutInfo(frame.gameInformation, false) || (frame.summary != null && containsTimeoutInfo(frame.summary, false))) {
+                this.resultPerAgentId.get(test.getPlayers().get(frame.agentId).getAgentId()).setCrashed(true);
+            }
+        }
+        if (response.tooltips != null) {
+            for (String tooltip : response.tooltips) {
+                if (containsTimeoutInfo(tooltip, true)) {
+                    PlayResponse.Tooltip parsedTooltip = gson.fromJson(tooltip, PlayResponse.Tooltip.class);
+                    this.resultPerAgentId.get(test.getPlayers().get(parsedTooltip.event).getAgentId()).setCrashed(true);
                 }
             }
-            if (response.success.tooltips != null) {
-                for (String tooltip : response.success.tooltips) {
-                    if (containsTimeoutInfo(tooltip, true)) {
-                        PlayResponse.Tooltip parsedTooltip = gson.fromJson(tooltip, PlayResponse.Tooltip.class);
-                        this.resultPerAgentId.get(test.getPlayers().get(parsedTooltip.event).getAgentId()).setCrashed(true);
-                    }
-                }
+        }
+
+        List<Integer> scores = response.scores;
+
+        Map<Integer, Integer> scorePerAgentId = new HashMap<>();
+        List<Integer> orderedAgentIds = new ArrayList<>();
+        for (int i = 0; i < test.getPlayers().size(); i++) {
+            scorePerAgentId.put(test.getPlayers().get(i).getAgentId(), scores.get(i));
+            orderedAgentIds.add(test.getPlayers().get(i).getAgentId());
+        }
+        orderedAgentIds.sort((a, b) -> {
+            int diff = scorePerAgentId.get(b) - scorePerAgentId.get(a);
+            if (diff != 0) {
+                return diff;
+            } else {
+                return a - b;
             }
+        });
 
-            List<Integer> scores = response.success.scores;
-
-            Map<Integer, Integer> scorePerAgentId = new HashMap<>();
-            List<Integer> orderedAgentIds = new ArrayList<>();
-            for (int i = 0; i < test.getPlayers().size(); i++) {
-                scorePerAgentId.put(test.getPlayers().get(i).getAgentId(), scores.get(i));
-                orderedAgentIds.add(test.getPlayers().get(i).getAgentId());
+        resultMessage = Constants.CG_HOST + "/replay/" + response.gameId + " ";
+        int rank = 1;
+        AgentIdResult agentIdResult = resultPerAgentId.get(orderedAgentIds.get(0));
+        resultMessage += rank + ":" + nickPerAgentId.get(orderedAgentIds.get(0)) + (agentIdResult.isCrashed() ? "(C)" : "");
+        agentIdResult.setRank(rank);
+        for (int i = 1; i < test.getPlayers().size(); i++) {
+            if (scorePerAgentId.get(orderedAgentIds.get(i)) < scorePerAgentId.get(orderedAgentIds.get(i - 1))) {
+                rank++;
             }
-            orderedAgentIds.sort((a, b) -> {
-                int diff = scorePerAgentId.get(b) - scorePerAgentId.get(a);
-                if (diff != 0) {
-                    return diff;
-                } else {
-                    return a - b;
-                }
-            });
-
-            resultMessage = Constants.CG_HOST + "/replay/" + response.success.gameId + " ";
-            int rank = 1;
-            AgentIdResult agentIdResult = resultPerAgentId.get(orderedAgentIds.get(0));
-            resultMessage += rank + ":" + nickPerAgentId.get(orderedAgentIds.get(0)) + (agentIdResult.isCrashed() ? "(C)" : "");
+            agentIdResult = resultPerAgentId.get(orderedAgentIds.get(i));
+            resultMessage += " " + rank + ":" + nickPerAgentId.get(orderedAgentIds.get(i)) + (agentIdResult.isCrashed() ? "(C)" : "");
             agentIdResult.setRank(rank);
-            for (int i = 1; i < test.getPlayers().size(); i++) {
-                if (scorePerAgentId.get(orderedAgentIds.get(i)) < scorePerAgentId.get(orderedAgentIds.get(i - 1))) {
-                    rank++;
-                }
-                agentIdResult = resultPerAgentId.get(orderedAgentIds.get(i));
-                resultMessage += " " + rank + ":" + nickPerAgentId.get(orderedAgentIds.get(i)) + (agentIdResult.isCrashed() ? "(C)" : "");
-                agentIdResult.setRank(rank);
-            }
         }
 
         this.resultString = String.format(outputFormat, consumerName, "SEED " + test.getSeedNumber(), resultMessage);

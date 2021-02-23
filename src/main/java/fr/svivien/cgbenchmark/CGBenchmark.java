@@ -199,7 +199,7 @@ public class CGBenchmark {
             throw new IllegalStateException("Login request failed");
         }
 
-        if (loginResponse.body() == null || loginResponse.body().success == null || loginResponse.body().success.userId == null) {
+        if (loginResponse.body() == null || loginResponse.body().userId == null) {
             throw new IllegalStateException("Login failed, please check login/pwd in configuration");
         }
 
@@ -208,7 +208,7 @@ public class CGBenchmark {
         accountCfg.setAccountCookie(cookie);
 
         // Retrieving IDE handle
-        String handle = retrieveHandle(retrofit, loginResponse.body().success.userId, accountCfg.getAccountCookie());
+        String handle = retrieveHandle(retrofit, loginResponse.body().userId, accountCfg.getAccountCookie());
 
         // Setting the IDE session in the account configuration
         accountCfg.setAccountIde(handle);
@@ -227,9 +227,9 @@ public class CGBenchmark {
                 throw new IllegalStateException("Session request failed");
             }
             if (globalConfiguration.getIsContest()) {
-                return sessionResponse.body().success.testSessionHandle;
+                return sessionResponse.body().testSessionHandle;
             } else {
-                return sessionResponse.body().success.handle;
+                return sessionResponse.body().handle;
             }
         } catch (IOException e) {
             throw new IllegalStateException("Error while retrieving session handle", e);

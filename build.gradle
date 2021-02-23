@@ -2,7 +2,7 @@ apply plugin: 'java'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
-version = '1.1.4'
+version = '1.2.0'
 
 repositories {
     mavenCentral()
@@ -33,5 +33,5 @@ dependencies {
     compile 'javax.el:javax.el-api:3.0.0'
     compile 'org.glassfish.web:javax.el:2.2.6'
     compile 'org.apache.commons:commons-math3:3.6.1'
-    annotationProcessor 'org.projectlombok:lombok:1.18.10'
+    annotationProcessor 'org.projectlombok:lombok:1.18.16'
 }

@@ -5,9 +5,6 @@ package fr.svivien.cgbenchmark.model.request.login;
  */
 public class LoginResponse {
 
-    public LoginResponseSuccess success;
+    public Integer userId;
 
-    public class LoginResponseSuccess {
-        public Integer userId;
-    }
 }

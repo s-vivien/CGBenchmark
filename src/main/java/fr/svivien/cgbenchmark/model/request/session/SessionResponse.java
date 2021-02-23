@@ -5,10 +5,6 @@ package fr.svivien.cgbenchmark.model.request.session;
  */
 public class SessionResponse {
 
-    public SessionResponseSuccess success;
-
-    public class SessionResponseSuccess {
-        public String handle; // handle for puzzles
-        public String testSessionHandle; // handle for contests
-    }
+    public String handle; // handle for puzzles
+    public String testSessionHandle; // handle for contests
 }
