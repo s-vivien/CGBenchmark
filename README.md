@@ -61,6 +61,7 @@ seedList:
 - seed=410110611
 
 # Cooldown between every match, 20 is the minimum to avoid CG's limitation
+# /!\ WARNING /!\ : During the Spring-Challenge-2021, the restrictions on CG's side are much stronger, expect a few errors with that cooldown
 requestCooldown: 20
 
 # [0, N] forced start position at N
