@@ -60,10 +60,6 @@ seedList:
 - seed=586660547
 - seed=410110611
 
-# Cooldown between every match, 20 is the minimum to avoid CG's limitation
-# /!\ WARNING /!\ : During the Spring-Challenge-2021, the restrictions on CG's side are much stronger, expect a few errors with that cooldown
-requestCooldown: 20
-
 # [0, N] forced start position at N
 # -1 : Each seed is played with every starting positions configuration. (Works only with fixed seed list).
 #       In 1v1, it will generate 2 games, 6 games in 1v2 and 24 games in 1v3. Best suited for non symmetrical and/or turn-based games.
@@ -110,6 +106,7 @@ defaultEnemies:
 ```
 
 ### Latest features :
+- Cooldown is now dynamic, applying the lowest one first and adjusting it as long as CGBenchmark hits the servers' limitations. FYI : the maximum number of games one account can play is now 600 per 24 hours.
 - New CG API compliance
 - Confidence interval in winrate stats
 - Password isn't mandatory in the config file. If not provided, it will be asked in a prompt

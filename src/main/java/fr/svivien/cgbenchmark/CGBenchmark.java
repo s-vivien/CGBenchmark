@@ -23,6 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.representer.Representer;
 import retrofit2.Call;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -92,7 +93,7 @@ public class CGBenchmark {
                 } else {
                     retrieveAccountCookieAndSession(accountCfg);
                 }
-                consumers.add(new Consumer(testBroker, accountCfg, globalConfiguration.getRequestCooldown(), pause, globalConfiguration.isSaveLogs()));
+                consumers.add(new Consumer(testBroker, accountCfg, pause, globalConfiguration.isSaveLogs()));
                 LOG.info("Account " + accountCfg.getAccountName() + " successfully registered");
             }
         } catch (IllegalStateException e) {
@@ -361,7 +362,9 @@ public class CGBenchmark {
 
     private GlobalConfiguration parseConfigurationFile(String cfgFilePath) throws FileNotFoundException {
         LOG.info("Loading configuration file : " + cfgFilePath);
-        Yaml yaml = new Yaml(new Constructor(GlobalConfiguration.class));
+        Representer representer = new Representer();
+        representer.getPropertyUtils().setSkipMissingProperties(true);
+        Yaml yaml = new Yaml(new Constructor(GlobalConfiguration.class), representer);
         FileInputStream configFileInputStream = new FileInputStream(cfgFilePath);
         GlobalConfiguration cfg = yaml.load(configFileInputStream);
 

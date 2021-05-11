@@ -41,7 +41,7 @@ public class Consumer implements Runnable {
     private ResultWrapper resultWrapper;
     private String cookie;
     private String ide;
-    private int cooldown;
+    private int cooldownIdx = 0;
     private boolean saveLogs;
     private long globalStartTime = 0;
     private long totalTestNumber = 0;
@@ -49,7 +49,7 @@ public class Consumer implements Runnable {
 
     private AtomicBoolean pause;
 
-    public Consumer(TestBroker testBroker, AccountConfiguration accountCfg, int cooldown, AtomicBoolean pause, boolean saveLogs) {
+    public Consumer(TestBroker testBroker, AccountConfiguration accountCfg, AtomicBoolean pause, boolean saveLogs) {
         OkHttpClient client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
         Retrofit retrofit = new Retrofit.Builder().client(client).baseUrl(Constants.CG_HOST).addConverterFactory(GsonConverterFactory.create()).build();
         this.cookie = accountCfg.getAccountCookie();
@@ -58,7 +58,6 @@ public class Consumer implements Runnable {
         this.testBroker = testBroker;
         this.pause = pause;
         this.cgPlayApi = retrofit.create(CGPlayApi.class);
-        this.cooldown = cooldown;
         this.saveLogs = saveLogs;
     }
 
@@ -83,22 +82,36 @@ public class Consumer implements Runnable {
                         resultWrapper.addTestResult(result);
                         break;
                     } else {
+                        triggerPause();
                         // Error occurred, waiting before retrying again
-                        Thread.sleep(tries < Constants.PLAY_TRIES_BEFORE_DEGRADED ? Constants.PLAY_ERROR_RETRY_COOLDOWN : Constants.PLAY_ERROR_RETRY_DEGRADED_COOLDOWN);
+                        if (result.getResultString().contains(Constants.RESTRICTIONS_ERROR_MESSAGE)) {
+                            if (cooldownIdx + 1 < Constants.COOLDOWNS_DURATION.length) {
+                                cooldownIdx++;
+                                LOG.info(String.format("Hitting the server limitations, now using a cooldown of %d seconds between games, suited for a %s long benchmark", Constants.COOLDOWNS_DURATION[cooldownIdx], Constants.COOLDOWNS_NAMES[cooldownIdx]));
+                            }
+                            applyCooldown(tryStart);
+                        } else {
+                            Thread.sleep(Constants.PLAY_ERROR_RETRY_COOLDOWN);
+                        }
+                        triggerPause();
                     }
                 }
 
                 if (testBroker.size() > 0) {
-                    triggerPause();
-                    // The cooldown is applied on the start-time of each test, and not on the end-time of previous test
-                    Thread.sleep(Math.max(100, cooldown * 1000 - (System.currentTimeMillis() - tryStart)));
-                    triggerPause();
+                    applyCooldown(tryStart);
                 }
             }
             LOG.info("Consumer " + this.name + " finished its job.");
         } catch (InterruptedException ex) {
             LOG.fatal("Consumer " + name + " has encountered an issue.", ex);
         }
+    }
+
+    private void applyCooldown(long tryStart) throws InterruptedException {
+        triggerPause();
+        // The cooldown is applied on the start-time of each test, and not on the end-time of previous test
+        Thread.sleep(Math.max(100, Constants.COOLDOWNS_DURATION[cooldownIdx] * 1000L - (System.currentTimeMillis() - tryStart)));
+        triggerPause();
     }
 
     public void resetDurationStats() {

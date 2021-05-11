@@ -19,10 +19,6 @@ public class GlobalConfiguration {
     private List<String> seedList;
 
     @NotNull
-    @Min(0)
-    private Integer requestCooldown;
-
-    @NotNull
     private Boolean randomSeed;
 
     @NotNull
