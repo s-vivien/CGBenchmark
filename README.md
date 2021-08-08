@@ -73,6 +73,12 @@ minEnemiesNumber: 1
 # Maximum number of enemies to play against
 maxEnemiesNumber: 3
 
+# Optional. Cooldown between every game. If not provided, applying the lowest one first and adjusting it as long as CGBenchmark hits the servers' limitations.
+requestCooldown: 45 # 80 games on 1h
+# requestCooldown: 72 # 150 games on 3h
+# requestCooldown: 108 # 200 games on 6h
+# requestCooldown: 144 # 600 games on 24h 
+
 # List of tested codes
 codeConfigurationList:
 - sourcePath: C:/CGBenchmark/totest/1.cpp
@@ -106,7 +112,7 @@ defaultEnemies:
 ```
 
 ### Latest features :
-- Cooldown is now dynamic, applying the lowest one first and adjusting it as long as CGBenchmark hits the servers' limitations. FYI : the maximum number of games one account can play is now 600 per 24 hours.
+- Cooldown is now optional. If not provided, applying the lowest one first and adjusting it as long as CGBenchmark hits the servers' limitations. FYI : the maximum number of games one account can play is now 600 per 24 hours.
 - New CG API compliance
 - Confidence interval in winrate stats
 - Password isn't mandatory in the config file. If not provided, it will be asked in a prompt
@@ -124,6 +130,5 @@ defaultEnemies:
 ### Things that would be cool to have:
  * Unit tests
  * Bring back separated P1/P2 winrates for 1v1 games
- * Reduce benchmark time with adaptive cooldown between games
  * Early benchmark cut if winrate is too low (with a minimum of played matches)
  * Excel-like output

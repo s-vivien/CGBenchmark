@@ -93,7 +93,7 @@ public class CGBenchmark {
                 } else {
                     retrieveAccountCookieAndSession(accountCfg);
                 }
-                consumers.add(new Consumer(testBroker, accountCfg, pause, globalConfiguration.isSaveLogs()));
+                consumers.add(new Consumer(testBroker, accountCfg, globalConfiguration.getRequestCooldown(), pause, globalConfiguration.isSaveLogs()));
                 LOG.info("Account " + accountCfg.getAccountName() + " successfully registered");
             }
         } catch (IllegalStateException e) {
