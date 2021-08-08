@@ -2,31 +2,22 @@ package fr.svivien.cgbenchmark;
 
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
-import fr.svivien.cgbenchmark.api.LoginApi;
-import fr.svivien.cgbenchmark.api.SessionApi;
 import fr.svivien.cgbenchmark.business.Consumer;
+import fr.svivien.cgbenchmark.business.Login;
 import fr.svivien.cgbenchmark.business.TestBroker;
 import fr.svivien.cgbenchmark.business.result.ResultWrapper;
 import fr.svivien.cgbenchmark.model.config.AccountConfiguration;
 import fr.svivien.cgbenchmark.model.config.CodeConfiguration;
 import fr.svivien.cgbenchmark.model.config.EnemyConfiguration;
 import fr.svivien.cgbenchmark.model.config.GlobalConfiguration;
-import fr.svivien.cgbenchmark.model.request.login.LoginRequest;
-import fr.svivien.cgbenchmark.model.request.login.LoginResponse;
-import fr.svivien.cgbenchmark.model.request.session.SessionRequest;
-import fr.svivien.cgbenchmark.model.request.session.SessionResponse;
 import fr.svivien.cgbenchmark.model.test.TestInput;
 import fr.svivien.cgbenchmark.utils.Constants;
 import fr.svivien.cgbenchmark.utils.SeedCleaner;
-import okhttp3.OkHttpClient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.representer.Representer;
-import retrofit2.Call;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
@@ -84,16 +75,16 @@ public class CGBenchmark {
                         char[] passwordArray = console.readPassword("Enter the password for account [" + accountCfg.getAccountLogin() + "] : ");
                         accountCfg.setAccountPassword(new String(passwordArray));
                         try {
-                            retrieveAccountCookieAndSession(accountCfg);
+                            Login.retrieveAccountCookieAndSession(accountCfg, globalConfiguration);
                             break;
                         } catch (IllegalStateException e) {
                             LOG.error("Wrong password, try again");
                         }
                     }
                 } else {
-                    retrieveAccountCookieAndSession(accountCfg);
+                    Login.retrieveAccountCookieAndSession(accountCfg, globalConfiguration);
                 }
-                consumers.add(new Consumer(testBroker, accountCfg, globalConfiguration.getRequestCooldown(), pause, globalConfiguration.isSaveLogs()));
+                consumers.add(new Consumer(testBroker, accountCfg, globalConfiguration, pause));
                 LOG.info("Account " + accountCfg.getAccountName() + " successfully registered");
             }
         } catch (IllegalStateException e) {
@@ -180,61 +171,6 @@ public class CGBenchmark {
         }
         reportFileName += ".txt";
         return reportFileName;
-    }
-
-    private void retrieveAccountCookieAndSession(AccountConfiguration accountCfg) {
-        LOG.info("Retrieving cookie and session for account " + accountCfg.getAccountName());
-
-        OkHttpClient client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
-        Retrofit retrofit = new Retrofit.Builder().client(client).baseUrl(Constants.CG_HOST).addConverterFactory(GsonConverterFactory.create()).build();
-        LoginApi loginApi = retrofit.create(LoginApi.class);
-
-        LoginRequest loginRequest = new LoginRequest(accountCfg.getAccountLogin(), accountCfg.getAccountPassword());
-        Call<LoginResponse> loginCall = loginApi.login(loginRequest);
-
-        // Calling getSessionHandle API
-        retrofit2.Response<LoginResponse> loginResponse;
-        try {
-            loginResponse = loginCall.execute();
-        } catch (IOException | RuntimeException e) {
-            throw new IllegalStateException("Login request failed");
-        }
-
-        if (loginResponse.body() == null || loginResponse.body().userId == null) {
-            throw new IllegalStateException("Login failed, please check login/pwd in configuration");
-        }
-
-        String cookie = String.join("; ", loginResponse.headers().values(Constants.SET_COOKIE));
-        // Setting the cookie in the account configuration
-        accountCfg.setAccountCookie(cookie);
-
-        // Retrieving IDE handle
-        String handle = retrieveHandle(retrofit, loginResponse.body().userId, accountCfg.getAccountCookie());
-
-        // Setting the IDE session in the account configuration
-        accountCfg.setAccountIde(handle);
-    }
-
-    private String retrieveHandle(Retrofit retrofit, Integer userId, String accountCookie) {
-        SessionApi sessionApi = retrofit.create(SessionApi.class);
-        SessionRequest sessionRequest = new SessionRequest(userId, globalConfiguration.getMultiName(), globalConfiguration.getIsContest());
-        Call<SessionResponse> sessionCall;
-        sessionCall = sessionApi.getSessionHandle(globalConfiguration.getIsContest() ? Constants.CONTEST_SESSION_SERVICE_URL : Constants.PUZZLE_SESSION_SERVICE_URL, sessionRequest, Constants.CG_HOST, accountCookie);
-
-        retrofit2.Response<SessionResponse> sessionResponse;
-        try {
-            sessionResponse = sessionCall.execute();
-            if (sessionResponse.body() == null) {
-                throw new IllegalStateException("Session request failed");
-            }
-            if (globalConfiguration.getIsContest()) {
-                return sessionResponse.body().testSessionHandle;
-            } else {
-                return sessionResponse.body().handle;
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException("Error while retrieving session handle", e);
-        }
     }
 
     private void createTests(CodeConfiguration codeCfg) {

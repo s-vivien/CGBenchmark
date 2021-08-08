@@ -27,9 +27,9 @@ public class TestOutput {
     private boolean containsTimeoutInfo(String msg, boolean checkForInvalidActions) {
         String lowerCaseMsg = msg.toLowerCase();
         return lowerCaseMsg.contains(Constants.TIMEOUT_INFORMATION_PART)
-               || lowerCaseMsg.contains(Constants.TIMEOUT_BIS_INFORMATION_PART)
-               || (checkForInvalidActions && lowerCaseMsg.contains(Constants.INVALID_INFORMATION_PART))
-               || (checkForInvalidActions && lowerCaseMsg.contains(Constants.INVALID_BIS_INFORMATION_PART));
+                || lowerCaseMsg.contains(Constants.TIMEOUT_BIS_INFORMATION_PART)
+                || (checkForInvalidActions && lowerCaseMsg.contains(Constants.INVALID_INFORMATION_PART))
+                || (checkForInvalidActions && lowerCaseMsg.contains(Constants.INVALID_BIS_INFORMATION_PART));
     }
 
     // Error constructor

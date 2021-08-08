@@ -112,6 +112,7 @@ defaultEnemies:
 ```
 
 ### Latest features :
+- Automatic cookie refresh
 - Cooldown is now optional. If not provided, applying the lowest one first and adjusting it as long as CGBenchmark hits the servers' limitations. FYI : the maximum number of games one account can play is now 600 per 24 hours.
 - New CG API compliance
 - Confidence interval in winrate stats
