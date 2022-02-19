@@ -2,7 +2,7 @@ package fr.svivien.cgbenchmark.business;
 
 import fr.svivien.cgbenchmark.api.CGPlayApi;
 import fr.svivien.cgbenchmark.business.result.ResultWrapper;
-import fr.svivien.cgbenchmark.model.config.AccountConfiguration;
+import fr.svivien.cgbenchmark.model.CGAccount;
 import fr.svivien.cgbenchmark.model.config.GlobalConfiguration;
 import fr.svivien.cgbenchmark.model.request.play.PlayRequest;
 import fr.svivien.cgbenchmark.model.request.play.PlayResponse;
@@ -36,7 +36,8 @@ public class Consumer implements Runnable {
 
     private static final Log LOG = LogFactory.getLog(Consumer.class);
 
-    private AccountConfiguration accountCfg;
+    private OkHttpClient client;
+    private CGAccount accountCfg;
     private GlobalConfiguration globalConfiguration;
     private TestBroker testBroker;
     private CGPlayApi cgPlayApi;
@@ -49,14 +50,18 @@ public class Consumer implements Runnable {
 
     private AtomicBoolean pause;
 
-    public Consumer(TestBroker testBroker, AccountConfiguration accountCfg, GlobalConfiguration globalConfiguration, AtomicBoolean pause) {
-        OkHttpClient client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
+    public Consumer(TestBroker testBroker, CGAccount accountCfg, GlobalConfiguration globalConfiguration, AtomicBoolean pause) {
+        client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
         Retrofit retrofit = new Retrofit.Builder().client(client).baseUrl(Constants.CG_HOST).addConverterFactory(GsonConverterFactory.create()).build();
         this.accountCfg = accountCfg;
         this.globalConfiguration = globalConfiguration;
         this.testBroker = testBroker;
         this.pause = pause;
         this.cgPlayApi = retrofit.create(CGPlayApi.class);
+    }
+
+    public void close() {
+        client.connectionPool().evictAll();
     }
 
     @Override
@@ -184,10 +189,6 @@ public class Consumer implements Runnable {
     }
 
     private TestOutput testCode(CGPlayApi cgPlayApi, TestInput test) {
-        if (System.currentTimeMillis() - cookieRetrievalTime > Constants.COOKIE_REFRESH_DURATION) {
-            Login.retrieveAccountCookieAndSession(accountCfg, globalConfiguration);
-            cookieRetrievalTime = System.currentTimeMillis();
-        }
         PlayRequest request = new PlayRequest(testBroker.getCodeContent(), testBroker.getCodeLanguage(), accountCfg.getAccountIde(), test.getSeed(), test.getPlayers());
         Call<PlayResponse> call = cgPlayApi.play(request, Constants.CG_HOST + "/ide/" + accountCfg.getAccountIde(), accountCfg.getAccountCookie());
         TestOutput testOutput;

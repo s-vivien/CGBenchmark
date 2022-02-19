@@ -38,9 +38,10 @@ The configuration uses the YAML format (which is a superset of JSON, so your old
 ---
 # Account configuration
 accountConfigurationList:
-- accountName: Neumann # Name of your account
-  accountLogin: email@provider.com # Login of your account
-  accountPassword: 123password # Password of your account (optional, will be asked in a prompt if not provided)
+    # rememberMe ID, extracted from your browser's cookies (more info below)
+  - rememberMe: a0b1c2d3-a0b1-a0b1-a0b1-a0b1c2d30000
+    # account ID, extracted from your CG profile's URL
+    accountId: 6db919e4cba28b42e343a3f3d36d2768260153
 
 # If enabled, seed list will be ignored and every match will be played against a random seed
 randomSeed: false
@@ -111,12 +112,28 @@ defaultEnemies:
 
 ```
 
+## How to grab your account's *rememberMe*
+
+Since CG's login API now involves a captcha, CG Benchmark is now using the cookies to authenticate its requests.   
+The *rememberMe* is part of the CG cookies, meaning that you'll first need to login to CG on your browser.   
+**Worry not, the cookie should be valid for a year, so you won't need to extract that information every time you run CG Benchmark.** You may however need to refresh that information everytime you login on the website.   
+
+Open the developer console (F12), and check the *Storage* (for Firefox) or *Application* (for Chrome) tab, and look for the *rememberMe* cookie, as shown in the screenshots below.    
+
+### Firefox
+
+![Firefox](./imgs/ff_cookie.png)
+
+### Chrome
+
+![Chrome](./imgs/chrome_cookie.png)
+
 ### Latest features :
-- Automatic cookie refresh
+- Cookie authentication
 - Cooldown is now optional. If not provided, applying the lowest one first and adjusting it as long as CGBenchmark hits the servers' limitations. FYI : the maximum number of games one account can play is now 600 per 24 hours.
 - New CG API compliance
 - Confidence interval in winrate stats
-- Password isn't mandatory in the config file. If not provided, it will be asked in a prompt
+- ~~Password isn't mandatory in the config file. If not provided, it will be asked in a prompt~~
 - Default enemy list, language and nbReplays
 - Isolated crash counters
 - YAML support
@@ -129,7 +146,7 @@ defaultEnemies:
 - You can now define a N enemies pool for each code configuration. Enemies will be picked randomly at each game (as well as their number, which will be a random value between `minEnemiesNumber` and `maxEnemiesNumber`). These random choices are deterministic, i.e. if you benchmark two codes with the same `enemies` configuration and a fixed seed list, each seed will be played against the same enemies every time.
 
 ### Things that would be cool to have:
- * Unit tests
+ * Unit tests...
  * Bring back separated P1/P2 winrates for 1v1 games
  * Early benchmark cut if winrate is too low (with a minimum of played matches)
  * Excel-like output

@@ -6,6 +6,7 @@ import fr.svivien.cgbenchmark.business.Consumer;
 import fr.svivien.cgbenchmark.business.Login;
 import fr.svivien.cgbenchmark.business.TestBroker;
 import fr.svivien.cgbenchmark.business.result.ResultWrapper;
+import fr.svivien.cgbenchmark.model.CGAccount;
 import fr.svivien.cgbenchmark.model.config.AccountConfiguration;
 import fr.svivien.cgbenchmark.model.config.CodeConfiguration;
 import fr.svivien.cgbenchmark.model.config.EnemyConfiguration;
@@ -65,27 +66,9 @@ public class CGBenchmark {
         LOG.info("Registering " + globalConfiguration.getAccountConfigurationList().size() + " account(s)");
         try {
             for (AccountConfiguration accountCfg : globalConfiguration.getAccountConfigurationList()) {
-                if (accountCfg.getAccountPassword() == null) { // Asks for the account password in a prompt
-                    Console console = System.console();
-                    if (console == null) {
-                        LOG.fatal("Cannot retrieve console. That might happen when CGBenchmark is launched with a redirected standard input. Please try without redirection");
-                        System.exit(1);
-                    }
-                    while (true) { // Re-try until the password is correct
-                        char[] passwordArray = console.readPassword("Enter the password for account [" + accountCfg.getAccountLogin() + "] : ");
-                        accountCfg.setAccountPassword(new String(passwordArray));
-                        try {
-                            Login.retrieveAccountCookieAndSession(accountCfg, globalConfiguration);
-                            break;
-                        } catch (IllegalStateException e) {
-                            LOG.error("Wrong password, try again");
-                        }
-                    }
-                } else {
-                    Login.retrieveAccountCookieAndSession(accountCfg, globalConfiguration);
-                }
-                consumers.add(new Consumer(testBroker, accountCfg, globalConfiguration, pause));
-                LOG.info("Account " + accountCfg.getAccountName() + " successfully registered");
+                CGAccount account = Login.retrieveAccountCookieAndSession(accountCfg, globalConfiguration);
+                consumers.add(new Consumer(testBroker, account, globalConfiguration, pause));
+                LOG.info("Account " + account.getAccountName() + " successfully registered");
             }
         } catch (IllegalStateException e) {
             LOG.fatal("Error while retrieving account cookie and session", e);
@@ -138,7 +121,7 @@ public class CGBenchmark {
                 LOG.error("An error has occurred within the broker/executor", e);
             }
 
-            LOG.info("Final results :" + resultWrapper.getWinrateDetails());
+            LOG.info("Final results :" + System.lineSeparator() + resultWrapper.getWinrateDetails());
 
             // Complete the report with all the results and final winrate
             resultWrapper.finishReport();
@@ -154,6 +137,7 @@ public class CGBenchmark {
             }
         }
 
+        for (Consumer consumer : consumers) consumer.close();
         LOG.info("No more tests. Ending.");
     }
 

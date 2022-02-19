@@ -3,8 +3,6 @@ package fr.svivien.cgbenchmark.utils;
 public class Constants {
 
     public static final String CG_HOST = "https://www.codingame.com";
-    public static final String SET_COOKIE = "Set-Cookie";
-    public static final int COOKIE_REFRESH_DURATION = 29 * 60 * 1000;
     public static final String TIMEOUT_INFORMATION_PART = "timeout";
     public static final String TIMEOUT_BIS_INFORMATION_PART = "timed out";
     public static final String RESTRICTIONS_ERROR_MESSAGE = "You reached the limit of plays for a period of time.";

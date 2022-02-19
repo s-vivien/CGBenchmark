@@ -8,15 +8,9 @@ import javax.validation.constraints.NotNull;
 public class AccountConfiguration {
 
     @NotNull
-    private String accountName;
-
-    private String accountCookie;
-
-    private String accountIde;
+    private String rememberMe;
 
     @NotNull
-    private String accountLogin;
-
-    private String accountPassword;
+    private String accountId;
 
 }

@@ -1,13 +1,14 @@
 package fr.svivien.cgbenchmark.business;
 
-import fr.svivien.cgbenchmark.api.LoginApi;
 import fr.svivien.cgbenchmark.api.SessionApi;
+import fr.svivien.cgbenchmark.api.UserApi;
+import fr.svivien.cgbenchmark.model.CGAccount;
 import fr.svivien.cgbenchmark.model.config.AccountConfiguration;
 import fr.svivien.cgbenchmark.model.config.GlobalConfiguration;
-import fr.svivien.cgbenchmark.model.request.login.LoginRequest;
-import fr.svivien.cgbenchmark.model.request.login.LoginResponse;
 import fr.svivien.cgbenchmark.model.request.session.SessionRequest;
 import fr.svivien.cgbenchmark.model.request.session.SessionResponse;
+import fr.svivien.cgbenchmark.model.request.user.UserRequest;
+import fr.svivien.cgbenchmark.model.request.user.UserResponse;
 import fr.svivien.cgbenchmark.utils.Constants;
 import okhttp3.OkHttpClient;
 import org.apache.commons.logging.Log;
@@ -23,37 +24,39 @@ public class Login {
 
     private static final Log LOG = LogFactory.getLog(Login.class);
 
-    public static void retrieveAccountCookieAndSession(AccountConfiguration accountCfg, GlobalConfiguration globalConfiguration) {
-        LOG.info("Retrieving cookie and session for account " + accountCfg.getAccountName());
-
+    public static CGAccount retrieveAccountCookieAndSession(AccountConfiguration accountCfg, GlobalConfiguration globalConfiguration) {
+        LOG.info("Retrieving session for account " + accountCfg.getAccountId());
         OkHttpClient client = new OkHttpClient.Builder().readTimeout(600, TimeUnit.SECONDS).build();
         Retrofit retrofit = new Retrofit.Builder().client(client).baseUrl(Constants.CG_HOST).addConverterFactory(GsonConverterFactory.create()).build();
-        LoginApi loginApi = retrofit.create(LoginApi.class);
+        CGAccount account = retrieveCGAccount(retrofit, accountCfg);
+        String handle = retrieveHandle(retrofit, account.getUserId(), account.getAccountCookie(), globalConfiguration);
+        account.setAccountIde(handle);
+        client.connectionPool().evictAll();
+        return account;
+    }
 
-        LoginRequest loginRequest = new LoginRequest(accountCfg.getAccountLogin(), accountCfg.getAccountPassword());
-        Call<LoginResponse> loginCall = loginApi.login(loginRequest);
+    private static CGAccount retrieveCGAccount(Retrofit retrofit, AccountConfiguration accountCfg) {
+        UserApi userApi = retrofit.create(UserApi.class);
+        UserRequest userRequest = new UserRequest(accountCfg.getAccountId());
+        Call<UserResponse> userCall;
 
-        // Calling getSessionHandle API
-        retrofit2.Response<LoginResponse> loginResponse;
+        CGAccount cgAccount = new CGAccount(accountCfg.getRememberMe());
+        userCall = userApi.retrieveAccountData(userRequest, cgAccount.getAccountCookie());
+
+        retrofit2.Response<UserResponse> userResponse;
         try {
-            loginResponse = loginCall.execute();
-        } catch (IOException | RuntimeException e) {
-            throw new IllegalStateException("Login request failed");
+            userResponse = userCall.execute();
+            UserResponse body = userResponse.body();
+            if (body == null || body.codingamer == null) {
+                throw new IllegalStateException("User scrapping failed, please check account configuration");
+            }
+            cgAccount.setAccountName(body.codingamer.pseudo);
+            cgAccount.setUserId(body.codingamer.userId);
+        } catch (IOException e) {
+            throw new IllegalStateException("Error while retrieving account data", e);
         }
 
-        if (loginResponse.body() == null || loginResponse.body().userId == null) {
-            throw new IllegalStateException("Login failed, please check login/pwd in configuration");
-        }
-
-        String cookie = String.join("; ", loginResponse.headers().values(Constants.SET_COOKIE));
-        // Setting the cookie in the account configuration
-        accountCfg.setAccountCookie(cookie);
-
-        // Retrieving IDE handle
-        String handle = retrieveHandle(retrofit, loginResponse.body().userId, accountCfg.getAccountCookie(), globalConfiguration);
-
-        // Setting the IDE session in the account configuration
-        accountCfg.setAccountIde(handle);
+        return cgAccount;
     }
 
     private static String retrieveHandle(Retrofit retrofit, Integer userId, String accountCookie, GlobalConfiguration globalConfiguration) {
